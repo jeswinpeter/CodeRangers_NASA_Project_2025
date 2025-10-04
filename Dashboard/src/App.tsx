@@ -79,13 +79,13 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, unit, icon: Icon, tre
 const NavTab: React.FC<NavTabProps> = ({ id, label, icon: Icon, activeTab, setActiveTab }) => (
   <button
     onClick={() => setActiveTab(id)}
-    className={`flex items-center gap-4 px-8 py-4 rounded-3xl transition-all duration-300 font-bold text-lg border-2 shadow-xl ${
+    className={`flex items-center justify-center gap-2 px-6 py-3 rounded-3xl transition-all duration-300 font-bold text-base border-2 shadow-xl min-w-fit whitespace-nowrap ml-4 first:ml-0 ${
       activeTab === id 
-        ? 'bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 text-white shadow-2xl scale-110 border-white/50' 
+        ? 'bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 text-white shadow-2xl scale-105 border-white/50' 
         : 'text-white hover:bg-white/20 border-white/30 bg-white/10 backdrop-blur-lg hover:scale-105'
     }`}
   >
-    <Icon className="h-6 w-6" />
+    <Icon className="h-5 w-5 flex-shrink-0" />
     <span className="drop-shadow-lg">{label}</span>
   </button>
 );
@@ -299,13 +299,13 @@ const App: React.FC = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          <NavTab id="overview" label="Overview" icon={Activity} activeTab={activeTab} setActiveTab={setActiveTab} />
-          <NavTab id="forecast" label="Forecast" icon={Calendar} activeTab={activeTab} setActiveTab={setActiveTab} />
-          <NavTab id="analytics" label="Analytics" icon={BarChart3} activeTab={activeTab} setActiveTab={setActiveTab} />
-          <NavTab id="map" label="Map View" icon={Map} activeTab={activeTab} setActiveTab={setActiveTab} />
-        </div>
-
+        
+<div className="flex gap-2 mb-6 overflow-x-auto pb-2 justify-center">
+  <NavTab id="overview" label="Overview" icon={Activity} activeTab={activeTab} setActiveTab={setActiveTab} />
+  <NavTab id="forecast" label="Forecast" icon={Calendar} activeTab={activeTab} setActiveTab={setActiveTab} />
+  <NavTab id="analytics" label="Analytics" icon={BarChart3} activeTab={activeTab} setActiveTab={setActiveTab} />
+  <NavTab id="map" label="Map View" icon={Map} activeTab={activeTab} setActiveTab={setActiveTab} />
+</div>
         {/* Weather Stats Grid */}
         {activeTab === 'overview' && (
           <>
