@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Location Update Test</title>
+</head>
+<body>
+    <h1>Location Update Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testLocationUpdate() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing location update functionality...</p>';
+            
+            try {
+                // Test frontend proxy to backend
+                console.log("Testing frontend proxy...");
+                results.innerHTML += '<p>Testing frontend proxy...</p>';
+                
+                const response = await fetch("/api/weather/current?lat=9.5916&lon=76.5222");
+                const data = await response.json();
+                
+                if (response.ok) {
+                    console.log("✅ Frontend proxy working:", data);
+                    results.innerHTML += `<p>✅ Frontend proxy working!</p>`;
+                    results.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    console.log("❌ Frontend proxy error:", data);
+                    results.innerHTML += `<p>❌ Frontend proxy error: ${JSON.stringify(data)}</p>`;
+                }
+                
+            } catch (error) {
+                console.error("❌ Test failed:", error);
+                results.innerHTML += `<p>❌ Test failed: ${error.message}</p>`;
+            }
+        }
+        
+        // Run test when page loads
+        window.onload = testLocationUpdate;
+    </script>
+</body>
+</html>

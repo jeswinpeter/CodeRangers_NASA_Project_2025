@@ -26,6 +26,7 @@ import {
   CloudRain,
 } from "lucide-react";
 import * as api from "./api";
+import { LocationSearch } from "./components/LocationSearch";
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -184,7 +185,6 @@ const NavTab: React.FC<NavTabProps> = ({
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentWeather, setCurrentWeather] =
     useState<WeatherData>(mockWeatherData);
   const [activeTab, setActiveTab] = useState<string>("overview");
@@ -192,6 +192,11 @@ const App: React.FC = () => {
     lat: 40.7128,
     lon: -74.006,
   });
+  const [currentLocation, setCurrentLocation] = useState<{
+    lat: number;
+    lon: number;
+    name?: string;
+  }>({ lat: 40.7128, lon: -74.006, name: "New York, NY" });
 
   // Analytics state
   const [historicalData, setHistoricalData] = useState<HistoricalWeatherData[]>(
@@ -201,35 +206,69 @@ const App: React.FC = () => {
   const [weatherStats, setWeatherStats] = useState<WeatherStats | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState<boolean>(false);
 
-  const fetchWeatherData = async (lat: number, lon: number) => {
+  const fetchWeatherData = async (lat: number, lon: number, locationName?: string) => {
     setLoading(true);
     try {
       console.log("Fetching weather for coordinates:", { lat, lon });
       const weatherData = await api.getCurrent(lat, lon);
 
       // Transform API response to match our WeatherData interface
+      const current = weatherData.current || weatherData;
       const transformedData: WeatherData = {
-        location: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
-        temperature:
-          weatherData.temperature || weatherData.ALLSKY_SFC_SW_DWN || 20,
-        humidity: weatherData.humidity || weatherData.RH2M || 60,
-        windSpeed: weatherData.windSpeed || weatherData.WS10M || 5,
-        pressure: weatherData.pressure || weatherData.PS || 1013,
-        condition: weatherData.condition || "Clear",
-        description:
-          weatherData.description || `Weather data from NASA POWER API`,
-        rawTemp: weatherData.rawTemp || weatherData.T2M || 22,
+        location: locationName || currentLocation.name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+        temperature: current.ts || current.temperature || 20,
+        humidity: current.rh2m || current.humidity || 60,
+        windSpeed: current.ws10m || current.windSpeed || 5,
+        pressure: current.ps || current.pressure || 1013,
+        condition: current.condition || "Clear",
+        description: current.description || `Weather data from NASA POWER API`,
+        rawTemp: current.ts || current.T2M || current.rawTemp || 22,
         timestamp: new Date().toISOString(),
       };
 
       setCurrentWeather(transformedData);
       console.log("Weather data updated:", transformedData);
-    } catch (error) {
+      
+      // Also update analytics data when location changes
+      generateAnalyticsData(lat, lon);
+      console.log("Analytics data updated for new location");
+    } catch (error: any) {
       console.error("Failed to fetch weather data:", error);
-      // Show error message to user but keep mock data
-      alert(
-        "Failed to fetch weather data. Please check your connection and try again."
-      );
+
+      // Detailed error message based on error type
+      let errorMessage = "Failed to fetch weather data. ";
+
+      if (
+        error.code === "NETWORK_ERROR" ||
+        error.message?.includes("Network Error")
+      ) {
+        errorMessage +=
+          "Network connection issue. Please check if both servers are running:\n" +
+          "• Backend: http://localhost:8002\n" +
+          "• Frontend: http://localhost:5174";
+      } else if (error.response?.status === 404) {
+        errorMessage +=
+          "API endpoint not found. Please check if the backend server is running on port 8002.";
+      } else if (error.response?.status === 500) {
+        errorMessage +=
+          "Server error. Please check the backend logs for details.";
+      } else if (error.response?.status) {
+        errorMessage += `Server responded with status ${
+          error.response.status
+        }. ${error.response.data?.detail || ""}`;
+      } else if (error.request) {
+        errorMessage +=
+          "No response from server. Please check:\n" +
+          "1. Backend server is running (port 8002)\n" +
+          "2. Network connection\n" +
+          "3. Firewall settings";
+      } else {
+        errorMessage += `Unexpected error: ${error.message || "Unknown error"}`;
+      }
+
+      errorMessage += "\n\nTo restart servers, run:\n./troubleshoot.sh";
+
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -243,49 +282,28 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      alert("Please enter a location to search");
-      return;
-    }
-
+  const handleLocationChange = async (location: { lat: number; lon: number; name: string }) => {
     setLoading(true);
     try {
-      // For now, we'll use a simple geocoding approach
-      // You can enhance this with Google Maps API or other geocoding services
-      console.log("Searching for location:", searchQuery);
+      console.log("Location selected:", location);
+      setCurrentLocation(location);
+      setCoordinates({ lat: location.lat, lon: location.lon });
+      await fetchWeatherData(location.lat, location.lon, location.name);
+    } catch (error: any) {
+      console.error("Location change failed:", error);
 
-      // Simple coordinate extraction if user enters "lat,lon" format
-      const coordMatch = searchQuery.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
-      if (coordMatch) {
-        const [, lat, lon] = coordMatch;
-        const newCoords = { lat: parseFloat(lat), lon: parseFloat(lon) };
-        setCoordinates(newCoords);
-        await fetchWeatherData(newCoords.lat, newCoords.lon);
+      let errorMessage = "Search failed. ";
+
+      if (error.message?.includes("Failed to fetch weather data")) {
+        errorMessage +=
+          "Could not fetch weather data for the location. Please check if the backend server is running.";
       } else {
-        // For demo purposes, use some predefined locations
-        const locations: { [key: string]: Coordinates } = {
-          "new york": { lat: 40.7128, lon: -74.006 },
-          london: { lat: 51.5074, lon: -0.1278 },
-          tokyo: { lat: 35.6762, lon: 139.6503 },
-          sydney: { lat: -33.8688, lon: 151.2093 },
-          paris: { lat: 48.8566, lon: 2.3522 },
-          delhi: { lat: 28.7041, lon: 77.1025 },
-        };
-
-        const location = locations[searchQuery.toLowerCase()];
-        if (location) {
-          setCoordinates(location);
-          await fetchWeatherData(location.lat, location.lon);
-        } else {
-          alert(
-            `Location "${searchQuery}" not found. Try: New York, London, Tokyo, Sydney, Paris, Delhi, or enter coordinates as "lat,lon"`
-          );
-        }
+        errorMessage += `Error: ${
+          error.message || "Unknown error"
+        }. Please try again.`;
       }
-    } catch (error) {
-      console.error("Search failed:", error);
-      alert("Search failed. Please try again.");
+
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -385,16 +403,17 @@ const App: React.FC = () => {
     setWeatherStats(stats);
   };
 
-  // Load analytics data when coordinates change
+  // Analytics data is now updated automatically when weather data is fetched
+  // This useEffect is kept only for showing loading state when switching to analytics tab
   useEffect(() => {
-    if (activeTab === "analytics" && coordinates.lat && coordinates.lon) {
+    if (activeTab === "analytics") {
       setAnalyticsLoading(true);
+      // Small delay to show loading animation, then hide it
       setTimeout(() => {
-        generateAnalyticsData(coordinates.lat, coordinates.lon);
         setAnalyticsLoading(false);
-      }, 1000); // Simulate API delay
+      }, 500);
     }
-  }, [activeTab, coordinates]);
+  }, [activeTab]);
 
   // Load initial weather data
   useEffect(() => {
@@ -446,87 +465,81 @@ const App: React.FC = () => {
         {/* Search Section */}
         <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-8 mb-8 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 pointer-events-none"></div>
-          <div className="relative z-10 flex flex-col md:flex-row gap-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-blue-700" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Search for cities, locations, or coordinates..."
-                className="w-full pl-14 pr-6 py-5 border-3 border-blue-300/50 rounded-2xl focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all bg-white/80 backdrop-blur-sm text-gray-800 placeholder-blue-600 text-lg font-medium shadow-xl"
-                disabled={loading}
-              />
+          <div className="relative z-10">
+            <div className="mb-4">
+              <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+                <Search className="h-7 w-7 text-blue-300" />
+                Search Locations Worldwide
+              </h3>
+              <p className="text-blue-100 text-lg">
+                Find weather data for any city, town, or village globally
+              </p>
             </div>
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="px-10 py-5 bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 text-white rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-4 border-2 border-white/50 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  Searching...
-                </>
-              ) : (
-                <>
-                  <Search className="h-6 w-6" />
-                  Search Location
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="relative z-10 flex gap-6 mt-8">
-            <input
-              type="number"
-              placeholder="Latitude"
-              value={coordinates.lat}
-              onChange={(e) =>
-                setCoordinates((prev) => ({
-                  ...prev,
-                  lat: parseFloat(e.target.value) || 0,
-                }))
-              }
-              className="flex-1 px-6 py-4 border-3 border-blue-300/50 rounded-2xl text-lg bg-white/80 backdrop-blur-sm focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all shadow-xl font-medium"
-              disabled={loading}
+            <LocationSearch
+              value={currentLocation}
+              onChange={handleLocationChange}
+              placeholder="Search any city, town, or village worldwide (e.g., Kottayam, Barcelona, Tokyo)"
             />
-            <input
-              type="number"
-              placeholder="Longitude"
-              value={coordinates.lon}
-              onChange={(e) =>
-                setCoordinates((prev) => ({
-                  ...prev,
-                  lon: parseFloat(e.target.value) || 0,
-                }))
-              }
-              className="flex-1 px-6 py-4 border-3 border-blue-300/50 rounded-2xl text-lg bg-white/80 backdrop-blur-sm focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all shadow-xl font-medium"
-              disabled={loading}
-            />
-            <button
-              onClick={handleGetWeather}
-              disabled={loading}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3 border-2 border-white/50 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <MapPin className="h-5 w-5" />
-                  Get Weather
-                </>
-              )}
-            </button>
+            
+            {/* Manual Coordinate Input */}
+            <div className="mt-6 pt-6 border-t border-white/20">
+              <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-blue-300" />
+                Or Enter Coordinates Manually
+              </h4>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex gap-4 flex-1">
+                  <input
+                    type="number"
+                    placeholder="Latitude (e.g., 9.5916)"
+                    value={coordinates.lat}
+                    onChange={(e) =>
+                      setCoordinates((prev) => ({
+                        ...prev,
+                        lat: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    className="flex-1 px-4 py-3 border-2 border-blue-300/50 rounded-xl text-lg bg-white/80 backdrop-blur-sm focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all shadow-lg font-medium text-gray-800"
+                    disabled={loading}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Longitude (e.g., 76.5222)"
+                    value={coordinates.lon}
+                    onChange={(e) =>
+                      setCoordinates((prev) => ({
+                        ...prev,
+                        lon: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    className="flex-1 px-4 py-3 border-2 border-blue-300/50 rounded-xl text-lg bg-white/80 backdrop-blur-sm focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all shadow-lg font-medium text-gray-800"
+                    disabled={loading}
+                  />
+                </div>
+                <button
+                  onClick={handleGetWeather}
+                  disabled={loading}
+                  className="px-8 py-3 bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 text-white rounded-xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3 border-2 border-white/50 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Satellite className="h-5 w-5" />
+                      Get Weather
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <div className="flex justify-center items-center gap-6 mb-6 overflow-x-auto pb-2">
           <NavTab
             id="overview"
             label="Overview"

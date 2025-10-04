@@ -16,7 +16,7 @@ interface LocationSearchProps {
 export const LocationSearch: React.FC<LocationSearchProps> = ({
   value,
   onChange,
-  placeholder = "Search for a location (e.g., Phoenix, Arizona)",
+  placeholder = "Search any city, town, or village worldwide (e.g., Phoenix, Barcelona, Kyoto)",
 }) => {
   const [query, setQuery] = useState(value.name || "");
   const [results, setResults] = useState<LocationResult[]>([]);
@@ -76,8 +76,16 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
     const newQuery = e.target.value;
     setQuery(newQuery);
 
-    // Debounce search
-    setTimeout(() => handleSearch(newQuery), 300);
+    // Clear previous timeout
+    if ((window as any).searchTimeout) {
+      clearTimeout((window as any).searchTimeout);
+    }
+
+    // Debounce search with shorter delay for better UX
+    (window as any).searchTimeout = setTimeout(
+      () => handleSearch(newQuery),
+      200
+    );
   };
 
   const handleLocationSelect = (location: LocationResult) => {
@@ -140,28 +148,60 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
       {/* Search Results Dropdown */}
       {showResults && results.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/20 rounded-lg shadow-xl max-h-80 overflow-y-auto">
+          <div className="px-4 py-2 border-b border-white/10">
+            <p className="text-gray-300 text-sm font-medium">
+              Found {results.length} location{results.length !== 1 ? "s" : ""}
+            </p>
+          </div>
           {results.map((location, index) => (
             <button
               key={index}
               onClick={() => handleLocationSelect(location)}
-              className="w-full px-4 py-3 text-left hover:bg-white/10 border-b border-white/10 last:border-b-0 focus:outline-none focus:bg-white/10"
+              className="w-full px-4 py-3 text-left hover:bg-white/10 border-b border-white/10 last:border-b-0 focus:outline-none focus:bg-white/10 transition-colors"
             >
-              <div className="flex items-center space-x-3">
-                <MapPin className="h-4 w-4 text-blue-400 flex-shrink-0" />
+              <div className="flex items-start space-x-3">
+                <MapPin className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium truncate">
-                    {location.name}
-                  </p>
-                  <p className="text-gray-300 text-sm truncate">
+                  <div className="flex items-center space-x-2">
+                    <p className="text-white font-medium truncate">
+                      {location.name}
+                    </p>
+                    {location.type && (
+                      <span className="px-2 py-0.5 bg-blue-500/30 text-blue-300 text-xs rounded-full flex-shrink-0">
+                        {location.type}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-300 text-sm truncate mt-0.5">
                     {location.display_name}
                   </p>
-                  <p className="text-gray-400 text-xs">
-                    {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
-                  </p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-gray-400 text-xs">
+                      {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
+                    </p>
+                    {location.country && (
+                      <p className="text-gray-400 text-xs">
+                        {location.country}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* No Results Message */}
+      {showResults && results.length === 0 && !loading && query.length > 1 && (
+        <div className="absolute z-50 w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/20 rounded-lg shadow-xl">
+          <div className="px-4 py-6 text-center">
+            <Search className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-gray-300 font-medium">No locations found</p>
+            <p className="text-gray-400 text-sm mt-1">
+              Try searching for a different city, town, or location name
+            </p>
+          </div>
         </div>
       )}
 
