@@ -101,19 +101,23 @@ const App: React.FC = () => {
     setLoading(true);
     try {
       console.log('Fetching weather for coordinates:', { lat, lon });
-      const weatherData = await api.getCurrent(lat, lon);
+      const response = await api.getCurrent(lat, lon);
+      console.log('Full API response:', response);
+      
+      // Extract weather data from the response
+      const weatherData = response.current || response;
       
       // Transform API response to match our WeatherData interface
       const transformedData: WeatherData = {
         location: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
         temperature: weatherData.temperature || weatherData.ALLSKY_SFC_SW_DWN || 20,
         humidity: weatherData.humidity || weatherData.RH2M || 60,
-        windSpeed: weatherData.windSpeed || weatherData.WS10M || 5,
+        windSpeed: weatherData.wind_speed || weatherData.windSpeed || weatherData.WS10M || 5,
         pressure: weatherData.pressure || weatherData.PS || 1013,
         condition: weatherData.condition || "Clear",
-        description: weatherData.description || `Weather data from NASA POWER API`,
-        rawTemp: weatherData.rawTemp || weatherData.T2M || 22,
-        timestamp: new Date().toISOString()
+        description: weatherData.description || `Weather data from ${response.data_source || 'API'}`,
+        rawTemp: weatherData.rawTemp || weatherData.T2M || weatherData.temperature || 22,
+        timestamp: response.timestamp || new Date().toISOString()
       };
       
       setCurrentWeather(transformedData);

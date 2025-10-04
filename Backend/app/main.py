@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import weather, ml
+from app.routers import weather
 
 app = FastAPI(title="NASA Weather Intelligence", version="1.0.0")
 
@@ -13,8 +13,11 @@ app.add_middleware(
 )
 
 app.include_router(weather.router)
-app.include_router(ml.router)
 
 @app.get("/")
 def root():
     return {"message": "NASA Weather Intelligence Dashboard API"}
+
+@app.get("/api/health")
+def health():
+    return {"status": "healthy", "service": "NASA Weather Intelligence API"}

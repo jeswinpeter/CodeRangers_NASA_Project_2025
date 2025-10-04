@@ -30,7 +30,13 @@ api.interceptors.response.use(
 
 export async function getCurrent(lat: number, lon: number) {
   try {
-    const { data } = await api.get("/weather/current", { params: { lat, lon } });
+    const { data } = await api.get("/weather/current", { 
+      params: { 
+        lat, 
+        lon, 
+        _t: Date.now() // Cache busting parameter
+      } 
+    });
     return data;
   } catch (error) {
     console.error('Failed to get current weather:', error);
