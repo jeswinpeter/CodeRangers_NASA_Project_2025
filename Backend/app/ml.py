@@ -74,6 +74,7 @@ def predict(df_future: pd.DataFrame) -> np.ndarray:
     except FileNotFoundError:
         # Fallback: simple seasonal model if no trained model
         print("No trained model found, using seasonal fallback")
+        df = engineer(df_future)  # Make sure df is defined for fallback
         base_temp = 20.0
         seasonal_variation = np.sin(df.index.dayofyear * 2 * np.pi / 365) * 10
         return base_temp + seasonal_variation
