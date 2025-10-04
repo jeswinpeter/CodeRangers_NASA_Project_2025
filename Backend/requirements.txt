@@ -1,3 +1,6 @@
+# Jupiter - NASA Weather Intelligence API
+# Python dependencies for the Jupiter weather intelligence platform
+
 # Web Framework and Server
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0

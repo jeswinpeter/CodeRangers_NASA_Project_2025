@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import * as api from "./api";
 import { LocationSearch } from "./components/LocationSearch";
+import { WeatherMap } from "./components/WeatherMap";
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -206,7 +207,11 @@ const App: React.FC = () => {
   const [weatherStats, setWeatherStats] = useState<WeatherStats | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState<boolean>(false);
 
-  const fetchWeatherData = async (lat: number, lon: number, locationName?: string) => {
+  const fetchWeatherData = async (
+    lat: number,
+    lon: number,
+    locationName?: string
+  ) => {
     setLoading(true);
     try {
       console.log("Fetching weather for coordinates:", { lat, lon });
@@ -215,7 +220,10 @@ const App: React.FC = () => {
       // Transform API response to match our WeatherData interface
       const current = weatherData.current || weatherData;
       const transformedData: WeatherData = {
-        location: locationName || currentLocation.name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+        location:
+          locationName ||
+          currentLocation.name ||
+          `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
         temperature: current.ts || current.temperature || 20,
         humidity: current.rh2m || current.humidity || 60,
         windSpeed: current.ws10m || current.windSpeed || 5,
@@ -228,7 +236,7 @@ const App: React.FC = () => {
 
       setCurrentWeather(transformedData);
       console.log("Weather data updated:", transformedData);
-      
+
       // Also update analytics data when location changes
       generateAnalyticsData(lat, lon);
       console.log("Analytics data updated for new location");
@@ -282,7 +290,32 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLocationChange = async (location: { lat: number; lon: number; name: string }) => {
+  const handleMapLocationSelect = async (lat: number, lon: number) => {
+    setLoading(true);
+    try {
+      console.log("Map location selected:", { lat, lon });
+      setCurrentLocation({
+        lat,
+        lon,
+        name: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      });
+      setCoordinates({ lat, lon });
+      await fetchWeatherData(lat, lon);
+    } catch (error: any) {
+      console.error("Map location selection failed:", error);
+      alert(
+        "Failed to get weather data for selected location. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLocationChange = async (location: {
+    lat: number;
+    lon: number;
+    name: string;
+  }) => {
     setLoading(true);
     try {
       console.log("Location selected:", location);
@@ -438,10 +471,10 @@ const App: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-black text-white drop-shadow-2xl">
-                  NASA Weather Intelligence
+                  Jupiter
                 </h1>
                 <p className="text-lg text-blue-100 font-semibold drop-shadow-lg">
-                  Powered by NASA POWER API
+                  NASA Weather Intelligence
                 </p>
               </div>
             </div>
@@ -480,7 +513,7 @@ const App: React.FC = () => {
               onChange={handleLocationChange}
               placeholder="Search any city, town, or village worldwide (e.g., Kottayam, Barcelona, Tokyo)"
             />
-            
+
             {/* Manual Coordinate Input */}
             <div className="mt-6 pt-6 border-t border-white/20">
               <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -1160,12 +1193,54 @@ const App: React.FC = () => {
         )}
 
         {activeTab === "map" && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Interactive Map
-            </h2>
-            <div className="h-96 bg-gray-100 rounded-xl flex items-center justify-center">
-              <p className="text-gray-500">Map view coming soon...</p>
+          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-blue-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-800 to-indigo-800 bg-clip-text text-transparent">
+                  Interactive Weather Map
+                </h2>
+                <p className="text-blue-600 font-medium">
+                  Click anywhere to check weather conditions
+                </p>
+              </div>
+              {loading && (
+                <div className="flex items-center gap-3 text-blue-600">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="font-medium">Getting weather data...</span>
+                </div>
+              )}
+            </div>
+            <div className="h-96 rounded-xl overflow-hidden shadow-lg">
+              <WeatherMap
+                center={[coordinates.lat, coordinates.lon]}
+                onLocationSelect={handleMapLocationSelect}
+                currentLocation={currentLocation}
+                weatherData={{
+                  temperature: currentWeather.temperature,
+                  humidity: currentWeather.humidity,
+                  windSpeed: currentWeather.windSpeed,
+                  condition: currentWeather.condition,
+                }}
+              />
+            </div>
+            <div className="mt-4 bg-blue-50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-800">
+                  Current Selection
+                </span>
+              </div>
+              <p className="text-sm text-blue-700">
+                <strong>
+                  {currentLocation.name || "No location selected"}
+                </strong>
+                {currentLocation.lat && (
+                  <span className="ml-2 text-blue-600">
+                    ({currentLocation.lat.toFixed(4)},{" "}
+                    {currentLocation.lon.toFixed(4)})
+                  </span>
+                )}
+              </p>
             </div>
           </div>
         )}

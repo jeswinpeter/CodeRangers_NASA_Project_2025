@@ -147,48 +147,53 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
 
       {/* Search Results Dropdown */}
       {showResults && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/20 rounded-lg shadow-xl max-h-80 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/20 rounded-lg shadow-xl max-h-80 overflow-hidden">
           <div className="px-4 py-2 border-b border-white/10">
             <p className="text-gray-300 text-sm font-medium">
               Found {results.length} location{results.length !== 1 ? "s" : ""}
+              {results.length > 5 && (
+                <span className="text-blue-300 ml-1">(scroll for more)</span>
+              )}
             </p>
           </div>
-          {results.map((location, index) => (
-            <button
-              key={index}
-              onClick={() => handleLocationSelect(location)}
-              className="w-full px-4 py-3 text-left hover:bg-white/10 border-b border-white/10 last:border-b-0 focus:outline-none focus:bg-white/10 transition-colors"
-            >
-              <div className="flex items-start space-x-3">
-                <MapPin className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2">
-                    <p className="text-white font-medium truncate">
-                      {location.name}
-                    </p>
-                    {location.type && (
-                      <span className="px-2 py-0.5 bg-blue-500/30 text-blue-300 text-xs rounded-full flex-shrink-0">
-                        {location.type}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-300 text-sm truncate mt-0.5">
-                    {location.display_name}
-                  </p>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-gray-400 text-xs">
-                      {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
-                    </p>
-                    {location.country && (
-                      <p className="text-gray-400 text-xs">
-                        {location.country}
+          <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500/50 scrollbar-track-gray-700/30">
+            {results.map((location, index) => (
+              <button
+                key={index}
+                onClick={() => handleLocationSelect(location)}
+                className="w-full px-4 py-3 text-left hover:bg-white/10 border-b border-white/10 last:border-b-0 focus:outline-none focus:bg-white/10 transition-colors"
+              >
+                <div className="flex items-start space-x-3">
+                  <MapPin className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-white font-medium truncate">
+                        {location.name}
                       </p>
-                    )}
+                      {location.type && (
+                        <span className="px-2 py-0.5 bg-blue-500/30 text-blue-300 text-xs rounded-full flex-shrink-0">
+                          {location.type}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-300 text-sm truncate mt-0.5">
+                      {location.display_name}
+                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-gray-400 text-xs">
+                        {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
+                      </p>
+                      {location.country && (
+                        <p className="text-gray-400 text-xs">
+                          {location.country}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
