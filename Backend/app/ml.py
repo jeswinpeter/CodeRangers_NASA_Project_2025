@@ -10,14 +10,27 @@ def engineer(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["doy"] = df.index.dayofyear
     df["month"] = df.index.month
-    df["lat"] = df.lat.iloc[0]
-    df["lon"] = df.lon.iloc[0]
+    if hasattr(df, 'lat') and not df.empty:
+        df["lat"] = df.lat.iloc[0] if 'lat' in df.columns else 40.7  # Default lat
+        df["lon"] = df.lon.iloc[0] if 'lon' in df.columns else -74.0  # Default lon
+    else:
+        df["lat"] = 40.7
+        df["lon"] = -74.0
     return df
 
 def train_model(df: pd.DataFrame):
     """Train Random-Forest on TS (temperature)."""
     df = engineer(df)
-    X = df[["doy", "month", "lat", "lon", "merra2_slv_10m_speed", "rh2m", "ps"]]
+    # Updated column names for new NASA POWER parameters
+    feature_cols = ["doy", "month", "lat", "lon"]
+    if "ws10m" in df.columns:
+        feature_cols.append("ws10m")
+    if "rh2m" in df.columns:
+        feature_cols.append("rh2m") 
+    if "ps" in df.columns:
+        feature_cols.append("ps")
+    
+    X = df[feature_cols]
     y = df["ts"]
     tscv = TimeSeriesSplit(n_splits=5)
     best = None
@@ -42,8 +55,25 @@ def load_model():
 
 def predict(df_future: pd.DataFrame) -> np.ndarray:
     """Return 14-day temperature predictions."""
-    model = load_model()
-    df = engineer(df_future)
-    X = df[["doy", "month", "lat", "lon", "merra2_slv_10m_speed", "rh2m", "ps"]]
-    preds = model.predict(X)
-    return preds
+    try:
+        model = load_model()
+        df = engineer(df_future)
+        
+        # Use available features
+        feature_cols = ["doy", "month", "lat", "lon"]
+        if "ws10m" in df.columns:
+            feature_cols.append("ws10m")
+        if "rh2m" in df.columns:
+            feature_cols.append("rh2m")
+        if "ps" in df.columns:
+            feature_cols.append("ps")
+            
+        X = df[feature_cols]
+        preds = model.predict(X)
+        return preds
+    except FileNotFoundError:
+        # Fallback: simple seasonal model if no trained model
+        print("No trained model found, using seasonal fallback")
+        base_temp = 20.0
+        seasonal_variation = np.sin(df.index.dayofyear * 2 * np.pi / 365) * 10
+        return base_temp + seasonal_variation

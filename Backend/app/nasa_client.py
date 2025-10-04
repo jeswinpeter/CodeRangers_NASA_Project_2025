@@ -6,7 +6,7 @@ def fetch_power(
     lon: float,
     start: str,
     end: str,
-    params="TS,MERRA2_SLV_10M_SPEED,RH2M,PS",
+    params="TS,WS10M,RH2M,PS",  # Fixed: WS10M instead of MERRA2_SLV_10M_SPEED
     community="RE",
 ):
     """Return pandas DataFrame with NASA POWER data."""

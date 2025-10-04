@@ -11,6 +11,7 @@ A modern, full-stack weather intelligence dashboard that combines NASA's satelli
 ## 🌟 Features
 
 ### Backend (FastAPI)
+
 - 🔥 **High-Performance API** - Built with FastAPI for maximum speed
 - 🌍 **Real-time Weather Data** - Current weather conditions by coordinates
 - 📊 **7-Day Forecasting** - Extended weather predictions
@@ -19,6 +20,7 @@ A modern, full-stack weather intelligence dashboard that combines NASA's satelli
 - 📖 **Auto-generated API Docs** - Swagger/OpenAPI documentation
 
 ### Frontend (React + TypeScript)
+
 - ⚡ **Modern React 18** - Latest React features with TypeScript
 - 🎨 **Tailwind CSS** - Beautiful, responsive design
 - 🌌 **Space-themed UI** - NASA-inspired interface design
@@ -30,50 +32,59 @@ A modern, full-stack weather intelligence dashboard that combines NASA's satelli
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.13+ 
+
+- Python 3.13+
 - Node.js 18+
 - npm or yarn
 
 ### Backend Setup
 
 1. **Navigate to Backend directory:**
+
    ```bash
    cd Backend
    ```
 
 2. **Create and activate virtual environment:**
+
    ```bash
    python3 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. **Install dependencies:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. **Start the FastAPI server:**
+
    ```bash
    python -m uvicorn main:app --reload
    ```
 
    The API will be available at: `http://localhost:8000`
+
    - API Documentation: `http://localhost:8000/docs`
    - Health Check: `http://localhost:8000/health`
 
 ### Frontend Setup
 
 1. **Navigate to Dashboard directory:**
+
    ```bash
    cd Dashboard
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Start the development server:**
+
    ```bash
    npm run dev
    ```
@@ -114,29 +125,35 @@ NASA_project_2025_V1/
 ## 🔧 API Endpoints
 
 ### Weather Data
+
 - `GET /api/weather/current?lat={lat}&lon={lon}` - Get current weather
 - `GET /api/weather/forecast?lat={lat}&lon={lon}` - Get 7-day forecast
 
 ### Machine Learning
+
 - `GET /api/ml/predict?lat={lat}&lon={lon}&days={days}` - Get ML predictions
 
 ### System
+
 - `GET /health` - Health check
 - `GET /api/health` - API health check
 
 ## 🌐 Usage Examples
 
 ### Get Current Weather
+
 ```bash
 curl "http://localhost:8000/api/weather/current?lat=40.7128&lon=-74.0060"
 ```
 
 ### Get Weather Forecast
+
 ```bash
 curl "http://localhost:8000/api/weather/forecast?lat=40.7128&lon=-74.0060"
 ```
 
 ### Get ML Predictions
+
 ```bash
 curl "http://localhost:8000/api/ml/predict?lat=40.7128&lon=-74.0060&days=7"
 ```
@@ -144,6 +161,7 @@ curl "http://localhost:8000/api/ml/predict?lat=40.7128&lon=-74.0060&days=7"
 ## 🛠️ Technology Stack
 
 ### Backend
+
 - **FastAPI** - Modern, fast web framework for building APIs
 - **Python 3.13** - Latest Python version
 - **Uvicorn** - ASGI server for production
@@ -153,6 +171,7 @@ curl "http://localhost:8000/api/ml/predict?lat=40.7128&lon=-74.0060&days=7"
 - **Requests** - HTTP library for API calls
 
 ### Frontend
+
 - **React 18** - Modern React with hooks
 - **TypeScript** - Type-safe JavaScript
 - **Vite** - Fast build tool and dev server
@@ -165,6 +184,7 @@ curl "http://localhost:8000/api/ml/predict?lat=40.7128&lon=-74.0060&days=7"
 ## 🚀 Deployment
 
 ### Backend Production
+
 ```bash
 # Install production dependencies
 pip install -r requirements.txt
@@ -174,6 +194,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend Production
+
 ```bash
 # Build for production
 npm run build

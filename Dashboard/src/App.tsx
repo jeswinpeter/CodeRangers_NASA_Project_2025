@@ -25,34 +25,40 @@ const App: React.FC = () => {
     setError("");
     try {
       const data = await getCurrent(coordinates.lat, coordinates.lon);
+      console.log("NASA POWER API Response:", data);
+
+      // Transform NASA POWER data to our frontend format
+      const current = data.current;
       setCurrentWeather({
         location: `${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(
           2
         )}`,
-        temperature: data.current.temperature,
-        humidity: data.current.humidity,
-        windSpeed: data.current.wind_speed,
-        pressure: data.current.pressure,
-        visibility: data.current.visibility,
-        cloudCover: data.current.cloud_cover,
-        description: data.current.description,
-        timestamp: data.timestamp,
+        temperature: current.ts || "N/A", // TS = Temperature at 2m (°C)
+        humidity: current.rh2m || "N/A", // RH2M = Relative Humidity at 2m (%)
+        windSpeed: current.ws10m || "N/A", // WS10M = Wind Speed at 10m (m/s) - FIXED
+        pressure: current.ps ? (current.ps * 10).toFixed(1) : "N/A", // PS = Surface Pressure (kPa -> hPa)
+        visibility: "N/A", // Not available in NASA POWER
+        cloudCover: "N/A", // Not available in NASA POWER
+        description: `NASA POWER Data (${data.data_date || "Recent"})`,
+        timestamp: new Date().toISOString(),
+        rawData: current, // Store raw NASA data for debugging
+        dataDate: data.data_date, // Show actual data date
       });
     } catch (err) {
-      setError("Failed to fetch weather data from API");
-      console.error(err);
-      // Fallback to mock data
+      setError("Failed to fetch weather data from NASA POWER API");
+      console.error("NASA API Error:", err);
+      // Fallback to mock data with realistic values based on location
       const mockData = {
         location: `${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(
           2
         )}`,
-        temperature: Math.floor(Math.random() * 30) + 10,
-        humidity: Math.floor(Math.random() * 50) + 30,
-        windSpeed: Math.floor(Math.random() * 20) + 5,
-        pressure: Math.floor(Math.random() * 100) + 1000,
-        visibility: Math.floor(Math.random() * 10) + 5,
+        temperature: Math.floor(Math.random() * 20) + 15, // More realistic range
+        humidity: Math.floor(Math.random() * 40) + 40, // 40-80%
+        windSpeed: Math.floor(Math.random() * 15) + 3, // 3-18 m/s
+        pressure: Math.floor(Math.random() * 50) + 1000, // 1000-1050 hPa
+        visibility: Math.floor(Math.random() * 10) + 10, // 10-20 km
         cloudCover: Math.floor(Math.random() * 100),
-        description: "Mock Data",
+        description: "Fallback Data (API Error)",
         timestamp: new Date().toISOString(),
       };
       setCurrentWeather(mockData);
