@@ -1,21 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { Satellite, MapPin, Thermometer, Cloud, Wind, Eye, Droplets } from 'lucide-react';
-import { getCurrent, getHealthCheck } from './api';
+import React, { useState, useEffect } from "react";
+import {
+  Satellite,
+  MapPin,
+  Thermometer,
+  Cloud,
+  Wind,
+  Eye,
+  Droplets,
+} from "lucide-react";
+import { getCurrent, getHealthCheck } from "./api";
 
 const App: React.FC = () => {
   const [currentWeather, setCurrentWeather] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [backendStatus, setBackendStatus] = useState<string>('Checking...');
-  const [coordinates, setCoordinates] = useState({ lat: 40.7128, lon: -74.0060 }); // Default to NYC
+  const [error, setError] = useState<string>("");
+  const [backendStatus, setBackendStatus] = useState<string>("Checking...");
+  const [coordinates, setCoordinates] = useState({
+    lat: 40.7128,
+    lon: -74.006,
+  }); // Default to NYC
 
   const fetchWeatherData = async () => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
       const data = await getCurrent(coordinates.lat, coordinates.lon);
       setCurrentWeather({
-        location: `${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(2)}`,
+        location: `${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(
+          2
+        )}`,
         temperature: data.current.temperature,
         humidity: data.current.humidity,
         windSpeed: data.current.wind_speed,
@@ -23,22 +36,24 @@ const App: React.FC = () => {
         visibility: data.current.visibility,
         cloudCover: data.current.cloud_cover,
         description: data.current.description,
-        timestamp: data.timestamp
+        timestamp: data.timestamp,
       });
     } catch (err) {
-      setError('Failed to fetch weather data from API');
+      setError("Failed to fetch weather data from API");
       console.error(err);
       // Fallback to mock data
       const mockData = {
-        location: `${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(2)}`,
+        location: `${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(
+          2
+        )}`,
         temperature: Math.floor(Math.random() * 30) + 10,
         humidity: Math.floor(Math.random() * 50) + 30,
         windSpeed: Math.floor(Math.random() * 20) + 5,
         pressure: Math.floor(Math.random() * 100) + 1000,
         visibility: Math.floor(Math.random() * 10) + 5,
         cloudCover: Math.floor(Math.random() * 100),
-        description: 'Mock Data',
-        timestamp: new Date().toISOString()
+        description: "Mock Data",
+        timestamp: new Date().toISOString(),
       };
       setCurrentWeather(mockData);
     } finally {
@@ -49,12 +64,12 @@ const App: React.FC = () => {
   const testBackendConnection = async () => {
     try {
       const data = await getHealthCheck();
-      setBackendStatus('Connected');
-      console.log('Backend connection test:', data);
+      setBackendStatus("Connected");
+      console.log("Backend connection test:", data);
       return data;
     } catch (err) {
-      setBackendStatus('Disconnected');
-      console.error('Backend connection failed:', err);
+      setBackendStatus("Disconnected");
+      console.error("Backend connection failed:", err);
       return null;
     }
   };
@@ -76,7 +91,9 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center space-x-3">
             <Satellite className="h-8 w-8 text-blue-400" />
-            <h1 className="text-2xl font-bold text-white">NASA Weather Intelligence Dashboard</h1>
+            <h1 className="text-2xl font-bold text-white">
+              NASA Weather Intelligence Dashboard
+            </h1>
           </div>
         </div>
       </header>
@@ -90,23 +107,37 @@ const App: React.FC = () => {
           </h2>
           <form onSubmit={handleLocationChange} className="flex gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Latitude</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Latitude
+              </label>
               <input
                 type="number"
                 step="any"
                 value={coordinates.lat}
-                onChange={(e) => setCoordinates(prev => ({ ...prev, lat: parseFloat(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  setCoordinates((prev) => ({
+                    ...prev,
+                    lat: parseFloat(e.target.value) || 0,
+                  }))
+                }
                 className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter latitude"
               />
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Longitude</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Longitude
+              </label>
               <input
                 type="number"
                 step="any"
                 value={coordinates.lon}
-                onChange={(e) => setCoordinates(prev => ({ ...prev, lon: parseFloat(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  setCoordinates((prev) => ({
+                    ...prev,
+                    lon: parseFloat(e.target.value) || 0,
+                  }))
+                }
                 className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter longitude"
               />
@@ -117,7 +148,7 @@ const App: React.FC = () => {
                 disabled={loading}
                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded-md font-medium transition-colors"
               >
-                {loading ? 'Loading...' : 'Get Weather'}
+                {loading ? "Loading..." : "Get Weather"}
               </button>
             </div>
           </form>
@@ -175,15 +206,21 @@ const App: React.FC = () => {
         {/* Additional Weather Info */}
         {currentWeather && (
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-8 border border-white/20">
-            <h3 className="text-lg font-semibold text-white mb-4">Weather Details</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Weather Details
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <span className="text-gray-300">Conditions:</span>
-                <span className="text-white ml-2 font-medium">{currentWeather.description}</span>
+                <span className="text-white ml-2 font-medium">
+                  {currentWeather.description}
+                </span>
               </div>
               <div>
                 <span className="text-gray-300">Location:</span>
-                <span className="text-white ml-2 font-medium">{currentWeather.location}</span>
+                <span className="text-white ml-2 font-medium">
+                  {currentWeather.location}
+                </span>
               </div>
             </div>
           </div>
@@ -191,28 +228,34 @@ const App: React.FC = () => {
 
         {/* System Status */}
         <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-          <h3 className="text-lg font-semibold text-white mb-4">System Status</h3>
+          <h3 className="text-lg font-semibold text-white mb-4">
+            System Status
+          </h3>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-gray-300">Backend API</span>
-              <span className={`px-2 py-1 rounded text-sm ${
-                backendStatus === 'Connected' 
-                  ? 'bg-green-500/20 text-green-400' 
-                  : 'bg-red-500/20 text-red-400'
-              }`}>
+              <span
+                className={`px-2 py-1 rounded text-sm ${
+                  backendStatus === "Connected"
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-red-500/20 text-red-400"
+                }`}
+              >
                 {backendStatus}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-300">Last Updated</span>
               <span className="text-gray-400 text-sm">
-                {currentWeather ? new Date(currentWeather.timestamp).toLocaleTimeString() : 'Never'}
+                {currentWeather
+                  ? new Date(currentWeather.timestamp).toLocaleTimeString()
+                  : "Never"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-300">Data Source</span>
               <span className="text-gray-400 text-sm">
-                {error ? 'Mock Data (API Error)' : 'NASA Weather API'}
+                {error ? "Mock Data (API Error)" : "NASA Weather API"}
               </span>
             </div>
           </div>
