@@ -1,509 +1,475 @@
-import React, { useState, useEffect } from "react";
-import {
-  Satellite,
-  MapPin,
-  Calendar,
-  Clock,
-  Thermometer,
-  Wind,
-  Droplets,
-  Eye,
-  Search,
-  Loader2,
-} from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { 
+  Satellite, MapPin, Search, Loader2, Cloud, RefreshCw, 
+  Thermometer, Wind, Droplets, Eye, Calendar, TrendingUp,
+  AlertCircle, Activity, BarChart3, Map, Download
+} from 'lucide-react';
+import * as api from './api';
+
+interface WeatherData {
+  location: string;
+  temperature: number;
+  humidity: number;
+  windSpeed: number;
+  pressure: number;
+  condition: string;
+  description: string;
+  rawTemp: number;
+  timestamp: string;
+}
+
+interface StatCardProps {
+  title: string;
+  value: number | string;
+  unit: string;
+  icon: React.ComponentType<{ className?: string }>;
+  trend?: string;
+  color: string;
+}
+
+interface NavTabProps {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
+
+interface Coordinates {
+  lat: number;
+  lon: number;
+}
+
+const mockWeatherData: WeatherData = {
+  location: "New York, NY",
+  temperature: 22.5,
+  humidity: 65,
+  windSpeed: 8.3,
+  pressure: 1013,
+  condition: "Partly Cloudy",
+  description: "High pressure system brings clear weather - Warm",
+  rawTemp: 25.5,
+  timestamp: new Date().toISOString()
+};
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, unit, icon: Icon, trend, color }) => (
+  <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-8 hover:shadow-3xl hover:scale-105 transition-all duration-300 relative overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 pointer-events-none"></div>
+    <div className="relative z-10 flex items-start justify-between">
+      <div className="flex-1">
+        <p className="text-lg font-bold text-white mb-3 drop-shadow-lg">{title}</p>
+        <div className="flex items-baseline gap-3">
+          <p className="text-4xl font-black text-white drop-shadow-2xl">{value}</p>
+          <span className="text-xl text-blue-100 font-bold drop-shadow-lg">{unit}</span>
+        </div>
+        {trend && (
+          <div className="flex items-center gap-3 mt-4">
+            <TrendingUp className="h-5 w-5 text-green-300" />
+            <span className="text-lg text-green-200 font-semibold drop-shadow-sm">{trend}</span>
+          </div>
+        )}
+      </div>
+      <div className={`p-5 rounded-3xl shadow-2xl border-2 border-white/50 ${color}`}>
+        <Icon className="h-8 w-8 text-white drop-shadow-lg" />
+      </div>
+    </div>
+  </div>
+);
+
+const NavTab: React.FC<NavTabProps> = ({ id, label, icon: Icon, activeTab, setActiveTab }) => (
+  <button
+    onClick={() => setActiveTab(id)}
+    className={`flex items-center gap-4 px-8 py-4 rounded-3xl transition-all duration-300 font-bold text-lg border-2 shadow-xl ${
+      activeTab === id 
+        ? 'bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 text-white shadow-2xl scale-110 border-white/50' 
+        : 'text-white hover:bg-white/20 border-white/30 bg-white/10 backdrop-blur-lg hover:scale-105'
+    }`}
+  >
+    <Icon className="h-6 w-6" />
+    <span className="drop-shadow-lg">{label}</span>
+  </button>
+);
 
 const App: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>("");
-  const [backendStatus, setBackendStatus] = useState<string>("Checking...");
-  const [coordinates, setCoordinates] = useState({
-    lat: 40.7128,
-    lon: -74.006,
-  });
-  const [currentWeather, setCurrentWeather] = useState<any>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [rawApiData, setRawApiData] = useState<any>(null);
-  const [showRawData, setShowRawData] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [currentWeather, setCurrentWeather] = useState<WeatherData>(mockWeatherData);
+  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [coordinates, setCoordinates] = useState<Coordinates>({ lat: 40.7128, lon: -74.006 });
 
-  const testBackendConnection = async () => {
-    try {
-      const response = await fetch('/api/health');
-      if (response.ok) {
-        setBackendStatus("Connected");
-      } else {
-        setBackendStatus("Disconnected");
-      }
-    } catch (err) {
-      setBackendStatus("Disconnected");
-      console.error("Backend connection failed:", err);
-    }
-  };
-
-  const searchLocation = async (query: string) => {
-    if (query.length < 3) {
-      setSearchResults([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    setSearchLoading(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`
-      );
-      const data = await response.json();
-      setSearchResults(data);
-      setShowSuggestions(true);
-    } catch (err) {
-      console.error("Search error:", err);
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const selectLocation = (result: any) => {
-    const lat = parseFloat(result.lat);
-    const lon = parseFloat(result.lon);
-    setCoordinates({ lat, lon });
-    setSearchQuery(result.display_name);
-    setShowSuggestions(false);
-    setSearchResults([]);
-  };
-
-  const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    searchLocation(value);
-  };
-
-  const fetchWeatherData = async () => {
+  const fetchWeatherData = async (lat: number, lon: number) => {
     setLoading(true);
-    setError("");
     try {
-      const response = await fetch(`/api/weather/current?lat=${coordinates.lat}&lon=${coordinates.lon}`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Weather API Response:", data);
-        
-        // Store raw API data
-        setRawApiData(data);
-
-        const current = data.current || {};
-        const locationName = searchQuery && searchQuery !== '' 
-          ? searchQuery.split(',')[0] + ` (${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(2)})`
-          : `${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(2)}`;
-        
-        setCurrentWeather({
-          location: locationName,
-          temperature: current.ts || 0,
-          humidity: current.rh2m || 0,
-          windSpeed: current.ws10m || 0,
-          pressure: current.ps ? current.ps * 10 : 0,
-          description: `NASA POWER Data (${data.data_date || "Recent"})`,
-          timestamp: new Date().toISOString(),
-        });
-      } else {
-        throw new Error('Weather API failed');
-      }
-    } catch (err) {
-      setError("Failed to fetch weather data");
-      console.error("Weather API Error:", err);
+      console.log('Fetching weather for coordinates:', { lat, lon });
+      const weatherData = await api.getCurrent(lat, lon);
       
-      // Fallback data
-      const locationName = searchQuery && searchQuery !== '' 
-        ? searchQuery.split(',')[0] + ` (${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(2)})`
-        : `${coordinates.lat.toFixed(2)}, ${coordinates.lon.toFixed(2)}`;
-        
-      setCurrentWeather({
-        location: locationName,
-        temperature: Math.floor(Math.random() * 20) + 15,
-        humidity: Math.floor(Math.random() * 40) + 40,
-        windSpeed: Math.floor(Math.random() * 15) + 3,
-        pressure: Math.floor(Math.random() * 50) + 1000,
-        description: "Fallback Data (API Error)",
-        timestamp: new Date().toISOString(),
-      });
+      // Transform API response to match our WeatherData interface
+      const transformedData: WeatherData = {
+        location: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+        temperature: weatherData.temperature || weatherData.ALLSKY_SFC_SW_DWN || 20,
+        humidity: weatherData.humidity || weatherData.RH2M || 60,
+        windSpeed: weatherData.windSpeed || weatherData.WS10M || 5,
+        pressure: weatherData.pressure || weatherData.PS || 1013,
+        condition: weatherData.condition || "Clear",
+        description: weatherData.description || `Weather data from NASA POWER API`,
+        rawTemp: weatherData.rawTemp || weatherData.T2M || 22,
+        timestamp: new Date().toISOString()
+      };
+      
+      setCurrentWeather(transformedData);
+      console.log('Weather data updated:', transformedData);
+    } catch (error) {
+      console.error('Failed to fetch weather data:', error);
+      // Show error message to user but keep mock data
+      alert('Failed to fetch weather data. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLocationChange = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchWeatherData();
+  const handleGetWeather = () => {
+    if (coordinates.lat && coordinates.lon) {
+      fetchWeatherData(coordinates.lat, coordinates.lon);
+    } else {
+      alert('Please enter valid coordinates');
+    }
   };
 
-  useEffect(() => {
-    testBackendConnection();
-    fetchWeatherData();
-  }, []);
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      alert('Please enter a location to search');
+      return;
+    }
 
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.search-container')) {
-        setShowSuggestions(false);
+    setLoading(true);
+    try {
+      // For now, we'll use a simple geocoding approach
+      // You can enhance this with Google Maps API or other geocoding services
+      console.log('Searching for location:', searchQuery);
+      
+      // Simple coordinate extraction if user enters "lat,lon" format
+      const coordMatch = searchQuery.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+      if (coordMatch) {
+        const [, lat, lon] = coordMatch;
+        const newCoords = { lat: parseFloat(lat), lon: parseFloat(lon) };
+        setCoordinates(newCoords);
+        await fetchWeatherData(newCoords.lat, newCoords.lon);
+      } else {
+        // For demo purposes, use some predefined locations
+        const locations: { [key: string]: Coordinates } = {
+          'new york': { lat: 40.7128, lon: -74.006 },
+          'london': { lat: 51.5074, lon: -0.1278 },
+          'tokyo': { lat: 35.6762, lon: 139.6503 },
+          'sydney': { lat: -33.8688, lon: 151.2093 },
+          'paris': { lat: 48.8566, lon: 2.3522 },
+          'delhi': { lat: 28.7041, lon: 77.1025 },
+        };
+        
+        const location = locations[searchQuery.toLowerCase()];
+        if (location) {
+          setCoordinates(location);
+          await fetchWeatherData(location.lat, location.lon);
+        } else {
+          alert(`Location "${searchQuery}" not found. Try: New York, London, Tokyo, Sydney, Paris, Delhi, or enter coordinates as "lat,lon"`);
+        }
       }
-    };
+    } catch (error) {
+      console.error('Search failed:', error);
+      alert('Search failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+  // Load initial weather data
+  useEffect(() => {
+    fetchWeatherData(coordinates.lat, coordinates.lon);
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
+    <div className="min-h-screen bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600">
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-4 -right-4 w-96 h-96 bg-gradient-to-br from-blue-300/30 to-indigo-300/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-8 -left-8 w-96 h-96 bg-gradient-to-tr from-sky-300/20 to-blue-400/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+      
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-3">
-            <Satellite className="h-8 w-8 text-blue-400" />
-            <h1 className="text-2xl font-bold text-white">
-              NASA Weather Dashboard
-            </h1>
-            <div className="ml-auto flex items-center space-x-4">
-              <span className={`px-3 py-1 rounded-full text-sm ${
-                backendStatus === "Connected" 
-                  ? "bg-green-500/20 text-green-400" 
-                  : "bg-red-500/20 text-red-400"
-              }`}>
-                {backendStatus}
-              </span>
+      <header className="relative bg-white/20 backdrop-blur-lg border-b border-white/30 sticky top-0 z-50 shadow-2xl">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 rounded-2xl shadow-2xl border-2 border-white/50">
+                <Satellite className="h-8 w-8 text-white drop-shadow-lg" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-black text-white drop-shadow-2xl">NASA Weather Intelligence</h1>
+                <p className="text-lg text-blue-100 font-semibold drop-shadow-lg">Powered by NASA POWER API</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-emerald-400 to-green-500 border-2 border-white/50 rounded-full shadow-xl">
+                <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                <span className="text-sm font-bold text-white drop-shadow-sm">Live</span>
+              </div>
+              <button className="p-3 hover:bg-white/20 rounded-xl transition-all duration-300 border-2 border-white/30 shadow-lg hover:shadow-xl">
+                <RefreshCw className="h-6 w-6 text-white" />
+              </button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Location Search */}
-        <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-8 border border-white/20">
-          <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-            <MapPin className="h-5 w-5 mr-2" />
-            Location
-          </h2>
-          
-          {/* Search Input */}
-          <div className="mb-6 relative search-container">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Search for a location
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+      <div className="relative max-w-7xl mx-auto px-6 py-8">
+        {/* Search Section */}
+        <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-8 mb-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 pointer-events-none"></div>
+          <div className="relative z-10 flex flex-col md:flex-row gap-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-blue-700" />
               <input
                 type="text"
                 value={searchQuery}
-                onChange={handleSearchInput}
-                onFocus={() => searchResults.length > 0 && setShowSuggestions(true)}
-                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/30 rounded-md text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Search for cities, addresses, landmarks..."
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Search for cities, locations, or coordinates..."
+                className="w-full pl-14 pr-6 py-5 border-3 border-blue-300/50 rounded-2xl focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all bg-white/80 backdrop-blur-sm text-gray-800 placeholder-blue-600 text-lg font-medium shadow-xl"
+                disabled={loading}
               />
-              {searchLoading && (
-                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 animate-spin" />
-              )}
             </div>
-            
-            {/* Search Results Dropdown */}
-            {showSuggestions && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                {searchResults.map((result, index) => (
-                  <div
-                    key={index}
-                    onClick={() => selectLocation(result)}
-                    className="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-600 last:border-b-0"
-                  >
-                    <div className="text-white font-medium">
-                      {result.name || result.display_name.split(',')[0]}
-                    </div>
-                    <div className="text-gray-400 text-sm truncate">
-                      {result.display_name}
-                    </div>
-                    <div className="text-gray-500 text-xs mt-1">
-                      {parseFloat(result.lat).toFixed(4)}, {parseFloat(result.lon).toFixed(4)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <button 
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-10 py-5 bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 text-white rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-4 border-2 border-white/50 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <Search className="h-6 w-6" />
+                  Search Location
+                </>
+              )}
+            </button>
           </div>
 
-          {/* Manual Coordinates */}
-          <div className="border-t border-white/10 pt-4">
-            <h3 className="text-lg font-medium text-white mb-3">Or enter coordinates manually:</h3>
-            <form onSubmit={handleLocationChange} className="flex gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Latitude
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  value={coordinates.lat}
-                  onChange={(e) =>
-                    setCoordinates((prev) => ({
-                      ...prev,
-                      lat: parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                  className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter latitude"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Longitude
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  value={coordinates.lon}
-                  onChange={(e) =>
-                    setCoordinates((prev) => ({
-                      ...prev,
-                      lon: parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                  className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-md text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter longitude"
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded-md font-medium transition-colors"
-                >
-                  {loading ? "Loading..." : "Get Weather"}
-                </button>
-              </div>
-            </form>
+          <div className="relative z-10 flex gap-6 mt-8">
+            <input
+              type="number"
+              placeholder="Latitude"
+              value={coordinates.lat}
+              onChange={(e) => setCoordinates(prev => ({ ...prev, lat: parseFloat(e.target.value) || 0 }))}
+              className="flex-1 px-6 py-4 border-3 border-blue-300/50 rounded-2xl text-lg bg-white/80 backdrop-blur-sm focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all shadow-xl font-medium"
+              disabled={loading}
+            />
+            <input
+              type="number"
+              placeholder="Longitude"
+              value={coordinates.lon}
+              onChange={(e) => setCoordinates(prev => ({ ...prev, lon: parseFloat(e.target.value) || 0 }))}
+              className="flex-1 px-6 py-4 border-3 border-blue-300/50 rounded-2xl text-lg bg-white/80 backdrop-blur-sm focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all shadow-xl font-medium"
+              disabled={loading}
+            />
+            <button 
+              onClick={handleGetWeather}
+              disabled={loading}
+              className="px-8 py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3 border-2 border-white/50 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <MapPin className="h-5 w-5" />
+                  Get Weather
+                </>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-8">
-            <p className="text-red-200">{error}</p>
-          </div>
-        )}
+        {/* Navigation Tabs */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          <NavTab id="overview" label="Overview" icon={Activity} activeTab={activeTab} setActiveTab={setActiveTab} />
+          <NavTab id="forecast" label="Forecast" icon={Calendar} activeTab={activeTab} setActiveTab={setActiveTab} />
+          <NavTab id="analytics" label="Analytics" icon={BarChart3} activeTab={activeTab} setActiveTab={setActiveTab} />
+          <NavTab id="map" label="Map View" icon={Map} activeTab={activeTab} setActiveTab={setActiveTab} />
+        </div>
 
-        {/* Weather Data */}
-        {currentWeather && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <WeatherCard
-              title="Temperature"
-              value={`${currentWeather.temperature.toFixed(1)}°C`}
-              icon={<Thermometer className="h-8 w-8" />}
-              color="text-orange-400"
-            />
-            <WeatherCard
-              title="Humidity"
-              value={`${currentWeather.humidity.toFixed(0)}%`}
-              icon={<Droplets className="h-8 w-8" />}
-              color="text-blue-400"
-            />
-            <WeatherCard
-              title="Wind Speed"
-              value={`${currentWeather.windSpeed.toFixed(1)} m/s`}
-              icon={<Wind className="h-8 w-8" />}
-              color="text-gray-400"
-            />
-            <WeatherCard
-              title="Pressure"
-              value={`${currentWeather.pressure.toFixed(0)} hPa`}
-              icon={<Eye className="h-8 w-8" />}
-              color="text-purple-400"
-            />
-          </div>
-        )}
+        {/* Weather Stats Grid */}
+        {activeTab === 'overview' && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <StatCard
+                title="Temperature"
+                value={currentWeather.temperature.toFixed(1)}
+                unit="°C"
+                icon={Thermometer}
+                trend="+2.3° from yesterday"
+                color="bg-gradient-to-br from-orange-500 to-red-500"
+              />
+              <StatCard
+                title="Humidity"
+                value={currentWeather.humidity}
+                unit="%"
+                icon={Droplets}
+                trend="Normal range"
+                color="bg-gradient-to-br from-blue-500 to-cyan-500"
+              />
+              <StatCard
+                title="Wind Speed"
+                value={currentWeather.windSpeed.toFixed(1)}
+                unit="m/s"
+                icon={Wind}
+                trend="Light breeze"
+                color="bg-gradient-to-br from-gray-500 to-slate-600"
+              />
+              <StatCard
+                title="Pressure"
+                value={(currentWeather.pressure / 10).toFixed(1)}
+                unit="kPa"
+                icon={Eye}
+                trend="Stable"
+                color="bg-gradient-to-br from-purple-500 to-indigo-600"
+              />
+            </div>
 
-        {/* Weather Details */}
-        {currentWeather && (
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Weather Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-gray-300">Conditions:</span>
-                <span className="text-white ml-2 font-medium">
-                  {currentWeather.description}
-                </span>
+            {/* Current Conditions Card */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-blue-100 p-8 mb-8">
+              <div className="flex items-start justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-800 to-indigo-800 bg-clip-text text-transparent mb-2">Current Conditions</h2>
+                  <p className="text-blue-600 font-medium">{currentWeather.location}</p>
+                </div>
+                <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-full">
+                  <Cloud className="h-5 w-5 text-blue-600" />
+                  <span className="text-sm font-semibold text-blue-700">{currentWeather.condition}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-gray-300">Location:</span>
-                <span className="text-white ml-2 font-medium">
-                  {currentWeather.location}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-300">Last Updated:</span>
-                <span className="text-white ml-2 font-medium">
-                  {new Date(currentWeather.timestamp).toLocaleTimeString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-300">Data Source:</span>
-                <span className="text-white ml-2 font-medium">
-                  NASA POWER API
-                </span>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl border-2 border-blue-200 shadow-lg">
+                    <p className="text-sm text-blue-700 font-semibold mb-3">Weather Description</p>
+                    <p className="text-gray-800 font-medium text-lg">{currentWeather.description}</p>
+                  </div>
+                  
+                  <div className="p-6 bg-gradient-to-br from-orange-50 to-red-100 rounded-2xl border-2 border-orange-200 shadow-lg">
+                    <p className="text-sm text-orange-700 font-semibold mb-4">Temperature Analysis</p>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700 font-medium">Adjusted Air Temp</span>
+                        <span className="font-mono font-bold text-lg text-orange-600">{currentWeather.temperature.toFixed(1)}°C</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700 font-medium">Surface Temp</span>
+                        <span className="font-mono font-medium text-gray-600">{currentWeather.rawTemp.toFixed(1)}°C</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Droplets className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm text-gray-700">Humidity Level</span>
+                    </div>
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                      Normal
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Wind className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-700">Wind Conditions</span>
+                    </div>
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                      Moderate
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Eye className="h-4 w-4 text-purple-500" />
+                      <span className="text-sm text-gray-700">Pressure</span>
+                    </div>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                      Normal
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-medium text-blue-900">Data Source</p>
+                        <p className="text-xs text-blue-700">NASA POWER API</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Raw NASA API Data */}
-        {rawApiData && (
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white flex items-center">
-                <Satellite className="h-5 w-5 mr-2" />
-                Raw NASA POWER API Data
-              </h3>
-              <button
-                onClick={() => setShowRawData(!showRawData)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                {showRawData ? 'Hide' : 'Show'} Raw Data
+            {/* Quick Actions */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <button className="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all flex items-center gap-3">
+                <Download className="h-5 w-5 text-gray-600" />
+                <div className="text-left">
+                  <p className="font-medium text-gray-900">Export Data</p>
+                  <p className="text-xs text-gray-500">Download as CSV/JSON</p>
+                </div>
+              </button>
+
+              <button className="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all flex items-center gap-3">
+                <BarChart3 className="h-5 w-5 text-gray-600" />
+                <div className="text-left">
+                  <p className="font-medium text-gray-900">View Analytics</p>
+                  <p className="text-xs text-gray-500">Historical trends</p>
+                </div>
+              </button>
+
+              <button className="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all flex items-center gap-3">
+                <TrendingUp className="h-5 w-5 text-gray-600" />
+                <div className="text-left">
+                  <p className="font-medium text-gray-900">ML Predictions</p>
+                  <p className="text-xs text-gray-500">14-day forecast</p>
+                </div>
               </button>
             </div>
-            
-            {showRawData && (
-              <div className="space-y-4">
-                {/* API Metadata */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-black/20 rounded-lg">
-                  <div>
-                    <span className="text-gray-300 text-sm">API Endpoint:</span>
-                    <div className="text-white font-mono text-sm break-all">
-                      NASA POWER Daily Data
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-300 text-sm">Data Date:</span>
-                    <div className="text-white font-medium">
-                      {rawApiData.data_date || 'N/A'}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-300 text-sm">Coordinates:</span>
-                    <div className="text-white font-medium">
-                      {rawApiData.lat}°, {rawApiData.lon}°
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-300 text-sm">Elevation:</span>
-                    <div className="text-white font-medium">
-                      {rawApiData.elevation ? `${rawApiData.elevation} m` : 'N/A'}
-                    </div>
-                  </div>
-                </div>
+          </>
+        )}
 
-                {/* Current Weather Parameters */}
-                {rawApiData.current && (
-                  <div className="p-4 bg-black/20 rounded-lg">
-                    <h4 className="text-white font-semibold mb-3">Current Weather Parameters</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Object.entries(rawApiData.current).map(([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-gray-300 text-sm">
-                            {getParameterDescription(key)}:
-                          </span>
-                          <span className="text-white font-mono text-sm">
-                            {formatParameterValue(key, value as number)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Raw JSON Data */}
-                <div className="p-4 bg-black/20 rounded-lg">
-                  <h4 className="text-white font-semibold mb-3">Complete JSON Response</h4>
-                  <pre className="text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap font-mono bg-black/30 p-3 rounded max-h-96 overflow-y-auto">
-                    {JSON.stringify(rawApiData, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            )}
+        {activeTab === 'forecast' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">7-Day Forecast</h2>
+            <p className="text-gray-500">Forecast view coming soon...</p>
           </div>
         )}
-      </main>
-    </div>
-  );
-};
 
-// Helper functions for raw data display
-const getParameterDescription = (key: string): string => {
-  const descriptions: { [key: string]: string } = {
-    'ts': 'Temperature (2m)',
-    'rh2m': 'Relative Humidity (2m)', 
-    'ws10m': 'Wind Speed (10m)',
-    'ps': 'Surface Pressure',
-    'prectotcorr': 'Precipitation',
-    'allsky_sfc_sw_dwn': 'Solar Irradiance',
-    'clrsky_sfc_sw_dwn': 'Clear Sky Solar',
-    't2m': 'Temperature (2m)',
-    't2m_max': 'Max Temperature',
-    't2m_min': 'Min Temperature',
-    'wspd': 'Wind Speed',
-    'u10m': 'Wind U-Component',
-    'v10m': 'Wind V-Component'
-  };
-  return descriptions[key] || key.toUpperCase();
-};
+        {activeTab === 'analytics' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Analytics Dashboard</h2>
+            <p className="text-gray-500">Analytics view coming soon...</p>
+          </div>
+        )}
 
-const formatParameterValue = (key: string, value: number): string => {
-  if (value === null || value === undefined) return 'N/A';
-  
-  const units: { [key: string]: string } = {
-    'ts': '°C',
-    't2m': '°C', 
-    't2m_max': '°C',
-    't2m_min': '°C',
-    'rh2m': '%',
-    'ws10m': ' m/s',
-    'wspd': ' m/s',
-    'u10m': ' m/s', 
-    'v10m': ' m/s',
-    'ps': ' kPa',
-    'prectotcorr': ' mm',
-    'allsky_sfc_sw_dwn': ' W/m²',
-    'clrsky_sfc_sw_dwn': ' W/m²'
-  };
-  
-  const unit = units[key] || '';
-  const formattedValue = typeof value === 'number' ? value.toFixed(2) : value;
-  return `${formattedValue}${unit}`;
-};
-
-// Weather Card Component
-interface WeatherCardProps {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  color: string;
-}
-
-const WeatherCard: React.FC<WeatherCardProps> = ({
-  title,
-  value,
-  icon,
-  color,
-}) => {
-  return (
-    <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20 hover:bg-white/15 transition-colors">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-300 text-sm font-medium">{title}</p>
-          <p className="text-2xl font-bold text-white mt-1">{value}</p>
-        </div>
-        <div className={`${color}`}>{icon}</div>
+        {activeTab === 'map' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Interactive Map</h2>
+            <div className="h-96 bg-gray-100 rounded-xl flex items-center justify-center">
+              <p className="text-gray-500">Map view coming soon...</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
