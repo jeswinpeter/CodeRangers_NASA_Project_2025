@@ -222,8 +222,8 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Weather Forecast</h2>
-          <p className="text-gray-600">{locationName}</p>
+          <h2 className="text-2xl font-bold text-white-900">Weather Forecast</h2>
+          <p className="text-white-600">{locationName}</p>
         </div>
         <div className="flex space-x-2">
           <button
@@ -295,7 +295,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
                         {formatTemperature(day.temperature)}
                       </span>
                       <span className="text-sm text-gray-600">
-                        Feels {formatTemperature(day.feels_like)}
+                        
                       </span>
                     </div>
 
@@ -360,8 +360,8 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
                     {formatTemperature(forecastData[selectedDay].temperature)}
                   </p>
                   <p className="text-sm text-gray-600">
-                    Feels like{" "}
-                    {formatTemperature(forecastData[selectedDay].feels_like)}
+                   
+                    
                   </p>
                 </div>
 

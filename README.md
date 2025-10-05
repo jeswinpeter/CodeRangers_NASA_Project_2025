@@ -45,7 +45,7 @@ A modern, full-stack weather intelligence dashboard that combines NASA's satelli
    cd Backend
    ```
 
-2. **Create and activate virtual environment:**
+2. **Create and activate virtual ecd nvironment:**
 
    ```bash
    python3 -m venv venv

@@ -29,6 +29,8 @@ import * as api from "./api";
 import { LocationSearch } from "./components/LocationSearch";
 import { WeatherMap } from "./components/WeatherMap";
 import { WeatherForecast } from "./components/WeatherForecast";
+import { useWeatherTheme } from './hooks/useWeatherTheme';
+import { WeatherBackground } from './components/WeatherBackground';
 
 // Function to generate natural weather descriptions
 const generateWeatherDescription = (
@@ -205,34 +207,36 @@ const StatCard: React.FC<StatCardProps> = ({
   trend,
   color,
 }) => (
-  <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-8 hover:shadow-3xl hover:scale-105 transition-all duration-300 relative overflow-hidden">
-    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 pointer-events-none"></div>
-    <div className="relative z-10 flex items-start justify-between">
+  // NEW: Dark, matte card with subtle internal glow and soft hover.
+  <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700/70 p-6 hover:shadow-xl hover:shadow-indigo-900/40 transition-all duration-300">
+    <div className="flex items-start justify-between">
       <div className="flex-1">
-        <p className="text-lg font-bold text-white mb-3 drop-shadow-lg">
+        {/* NEW: Muted text for title */}
+        <p className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">
           {title}
         </p>
-        <div className="flex items-baseline gap-3">
-          <p className="text-4xl font-black text-white drop-shadow-2xl">
+        <div className="flex items-baseline gap-2">
+          {/* NEW: Clean white text for value */}
+          <p className="text-3xl font-extrabold text-white">
             {value}
           </p>
-          <span className="text-xl text-blue-100 font-bold drop-shadow-lg">
+          {/* NEW: Light blue unit */}
+          <span className="text-lg text-blue-300 font-medium">
             {unit}
           </span>
         </div>
         {trend && (
-          <div className="flex items-center gap-3 mt-4">
-            <TrendingUp className="h-5 w-5 text-green-300" />
-            <span className="text-lg text-green-200 font-semibold drop-shadow-sm">
+          <div className="flex items-center gap-2 mt-3">
+            <TrendingUp className="h-4 w-4 text-emerald-400" />
+            <span className="text-sm text-emerald-300 font-medium">
               {trend}
             </span>
           </div>
         )}
       </div>
-      <div
-        className={`p-5 rounded-3xl shadow-2xl border-2 border-white/50 ${color}`}
-      >
-        <Icon className="h-8 w-8 text-white drop-shadow-lg" />
+      {/* NEW: Icon is reserved color, simple rounded square */}
+      <div className={`p-3 rounded-lg shadow-md ${color}`}>
+        <Icon className="h-6 w-6 text-white" />
       </div>
     </div>
   </div>
@@ -245,16 +249,19 @@ const NavTab: React.FC<NavTabProps> = ({
   activeTab,
   setActiveTab,
 }) => (
+  // NEW: Dark base, simple border, focus on clean lines
   <button
     onClick={() => setActiveTab(id)}
-    className={`flex items-center gap-4 px-8 py-4 rounded-3xl transition-all duration-300 font-bold text-lg border-2 shadow-xl ${
+    className={`flex items-center gap-3 px-6 py-3 rounded-lg transition-all duration-300 font-semibold text-base ${
       activeTab === id
-        ? "bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 text-white shadow-2xl scale-110 border-white/50"
-        : "text-white hover:bg-white/20 border-white/30 bg-white/10 backdrop-blur-lg hover:scale-105"
+        // NEW Active: Muted blue primary color, strong shadow
+        ? "bg-blue-600 text-white shadow-xl shadow-blue-900/50 scale-100"
+        // NEW Inactive: Dark subtle hover
+        : "text-gray-300 hover:text-white hover:bg-gray-700/50"
     }`}
   >
-    <Icon className="h-6 w-6" />
-    <span className="drop-shadow-lg">{label}</span>
+    <Icon className="h-5 w-5" />
+    <span>{label}</span>
   </button>
 );
 
@@ -280,7 +287,10 @@ const App: React.FC = () => {
   const [weatherTrends, setWeatherTrends] = useState<WeatherTrend[]>([]);
   const [weatherStats, setWeatherStats] = useState<WeatherStats | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState<boolean>(false);
-
+  // Inside the App component, add this after your state declarations:
+  const { theme: weatherTheme, themeClasses } = useWeatherTheme(currentWeather);
+  const [themeIndex, setThemeIndex] = useState<number>(0);
+  const themeOrder = ['Clear', 'Rainy', 'Thunderstorm', 'Cloudy', 'Snowy'];
   const fetchWeatherData = async (
     lat: number,
     lon: number,
@@ -534,451 +544,467 @@ const App: React.FC = () => {
     fetchWeatherData(coordinates.lat, coordinates.lon);
   }, []);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600">
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-4 -right-4 w-96 h-96 bg-gradient-to-br from-blue-300/30 to-indigo-300/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-8 -left-8 w-96 h-96 bg-gradient-to-tr from-sky-300/20 to-blue-400/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
+  // ... inside App component return
 
-      {/* Header */}
-      <header className="relative bg-white/20 backdrop-blur-lg border-b border-white/30 sticky top-0 z-50 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 rounded-2xl shadow-2xl border-2 border-white/50">
-                <Satellite className="h-8 w-8 text-white drop-shadow-lg" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-black text-white drop-shadow-2xl">
-                  Jupiter
-                </h1>
-                <p className="text-lg text-blue-100 font-semibold drop-shadow-lg">
-                  NASA Weather Intelligence
-                </p>
-              </div>
+return (
+  // NEW: Deep Indigo/Gray Background
+  <div className={`min-h-screen bg-gray-950 text-white ${themeClasses.background} transition-colors duration-1000`}>
+    {/* Animated Background Elements */}
+    <WeatherBackground theme={weatherTheme} />
+
+    {/* Header (Clean, Dark Bar) */}
+    <header className={`relative bg-gray-900/90 backdrop-blur-md border-b border-gray-700 sticky top-0 z-50 shadow-2xl shadow-black/50 transition-colors duration-1000`}>
+      <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* NEW: Simple Logo Icon - Muted Cyan */}
+            <div className="p-3 bg-gray-800 rounded-lg border border-cyan-500/50">
+              <Satellite className="h-6 w-6 text-cyan-400" />
             </div>
-
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-emerald-400 to-green-500 border-2 border-white/50 rounded-full shadow-xl">
-                <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
-                <span className="text-sm font-bold text-white drop-shadow-sm">
-                  Live
-                </span>
-              </div>
-              <button className="p-3 hover:bg-white/20 rounded-xl transition-all duration-300 border-2 border-white/30 shadow-lg hover:shadow-xl">
-                <RefreshCw className="h-6 w-6 text-white" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="relative max-w-7xl mx-auto px-6 py-8">
-        {/* Search Section */}
-        <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-8 mb-8 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 pointer-events-none"></div>
-          <div className="relative z-10">
-            <div className="mb-4">
-              <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-                <Search className="h-7 w-7 text-blue-300" />
-                Search Locations Worldwide
-              </h3>
-              <p className="text-blue-100 text-lg">
-                Find weather data for any city, town, or village globally
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-wider">
+                JUPITER
+              </h1>
+              <p className="text-sm text-gray-400 font-medium">
+                NASA Data Core
               </p>
             </div>
-            <LocationSearch
-              value={currentLocation}
-              onChange={handleLocationChange}
-              placeholder="Search any city, town, or village worldwide (e.g., Kottayam, Barcelona, Tokyo)"
-            />
+          </div>
 
-            {/* Manual Coordinate Input */}
-            <div className="mt-6 pt-6 border-t border-white/20">
-              <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-blue-300" />
-                Or Enter Coordinates Manually
-              </h4>
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex gap-4 flex-1">
-                  <input
-                    type="number"
-                    placeholder="Latitude (e.g., 9.5916)"
-                    value={coordinates.lat}
-                    onChange={(e) =>
-                      setCoordinates((prev) => ({
-                        ...prev,
-                        lat: parseFloat(e.target.value) || 0,
-                      }))
-                    }
-                    className="flex-1 px-4 py-3 border-2 border-blue-300/50 rounded-xl text-lg bg-white/80 backdrop-blur-sm focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all shadow-lg font-medium text-gray-800"
-                    disabled={loading}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Longitude (e.g., 76.5222)"
-                    value={coordinates.lon}
-                    onChange={(e) =>
-                      setCoordinates((prev) => ({
-                        ...prev,
-                        lon: parseFloat(e.target.value) || 0,
-                      }))
-                    }
-                    className="flex-1 px-4 py-3 border-2 border-blue-300/50 rounded-xl text-lg bg-white/80 backdrop-blur-sm focus:ring-4 focus:ring-blue-400/50 focus:border-blue-500 transition-all shadow-lg font-medium text-gray-800"
-                    disabled={loading}
-                  />
-                </div>
-                <button
-                  onClick={handleGetWeather}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-700 border border-emerald-500 rounded-full shadow-lg">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              <span className="text-xs font-semibold text-white">
+                Live
+              </span>
+            </div>
+            {/* NEW: Dark, simple refresh button */}
+           
+            {/* NEW: Test Theme Button - Blue/Purple gradient kept for "action" */}
+            <button 
+              onClick={() => {
+                const nextIndex = (themeIndex + 1) % themeOrder.length;
+                setThemeIndex(nextIndex);
+                const nextTheme = themeOrder[nextIndex];
+                
+                // Update weather to trigger theme change
+                setCurrentWeather({
+                  ...currentWeather,
+                  condition: nextTheme,
+                  description: `Testing ${nextTheme} weather`,
+                  temperature: nextTheme === 'Snowy' ? -5 : currentWeather.temperature
+                });
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-80 rounded-lg transition-all duration-300 border border-gray-700 shadow-lg"
+            >
+              <Zap className="h-5 w-5 text-white" />
+              <span className="text-sm font-semibold text-white">Theme Cycle</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div className="relative max-w-7xl mx-auto px-6 py-8">
+      {/* Search Section (Matte Dark Card) */}
+      <div className={`bg-gray-800 rounded-xl shadow-2xl shadow-black/50 border border-gray-700 p-6 mb-6 transition-colors duration-1000`}>
+        <div className="relative z-10">
+          <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
+            <Search className="h-6 w-6 text-blue-400" />
+            Location Target
+          </h3>
+          <p className="text-gray-400 text-sm mb-4">
+            Input coordinate data or search for a location grid.
+          </p>
+
+          <LocationSearch
+            value={currentLocation}
+            onChange={handleLocationChange}
+            placeholder="Search city/region (e.g., Kottayam, Barcelona, Tokyo)"
+            // NEW: Dark input styling
+            inputClassName="w-full px-4 py-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all placeholder-gray-500 text-sm"
+          />
+
+          {/* Manual Coordinate Input */}
+          <div className="mt-4 pt-4 border-t border-gray-700">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex gap-3 flex-1">
+                <input
+                  type="number"
+                  placeholder="Latitude"
+                  value={coordinates.lat}
+                  onChange={(e) =>
+                    setCoordinates((prev) => ({
+                      ...prev,
+                      lat: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  // NEW: Dark coordinate input
+                  className="flex-1 px-4 py-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:ring-2 focus:ring-cyan-500 transition-all text-sm"
                   disabled={loading}
-                  className="px-8 py-3 bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 text-white rounded-xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3 border-2 border-white/50 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Satellite className="h-5 w-5" />
-                      Get Weather
-                    </>
-                  )}
-                </button>
+                />
+                <input
+                  type="number"
+                  placeholder="Longitude"
+                  value={coordinates.lon}
+                  onChange={(e) =>
+                    setCoordinates((prev) => ({
+                      ...prev,
+                      lon: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  // NEW: Dark coordinate input
+                  className="flex-1 px-4 py-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:ring-2 focus:ring-cyan-500 transition-all text-sm"
+                  disabled={loading}
+                />
               </div>
+              <button
+                onClick={handleGetWeather}
+                disabled={loading}
+                // NEW: Primary button with subtle gradient
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold text-sm hover:opacity-80 transition-all duration-300 flex items-center justify-center gap-2 border border-gray-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Satellite className="h-4 w-4" />
+                    Fetch Data
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex justify-center items-center gap-6 mb-6 overflow-x-auto pb-2">
-          <NavTab
-            id="overview"
-            label="Overview"
-            icon={Activity}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-          <NavTab
-            id="forecast"
-            label="Forecast"
-            icon={Calendar}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-          <NavTab
-            id="analytics"
-            label="Analytics"
-            icon={BarChart3}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-          <NavTab
-            id="map"
-            label="Map View"
-            icon={Map}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-        </div>
+      {/* Navigation Tabs (Sleek Dark Bar) */}
+      <div className="flex justify-start items-center gap-1 mb-8 bg-gray-900/80 backdrop-blur-sm rounded-lg p-1.5 border border-gray-700 shadow-xl shadow-black/50 overflow-x-auto">
+        <NavTab
+          id="overview"
+          label="Overview"
+          icon={Activity}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+        <NavTab
+          id="forecast"
+          label="Forecast"
+          icon={Calendar}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+        <NavTab
+          id="analytics"
+          label="Analytics"
+          icon={BarChart3}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+        <NavTab
+          id="map"
+          label="Map View"
+          icon={Map}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+        <NavTab
+            id="export"
+            label="Export"
+            icon={Download}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+      </div>
 
-        {/* Weather Stats Grid */}
-        {activeTab === "overview" && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <StatCard
-                title="Temperature"
-                value={currentWeather.temperature.toFixed(1)}
-                unit="°C"
-                icon={Thermometer}
-                trend="+2.3° from yesterday"
-                color="bg-gradient-to-br from-orange-500 to-red-500"
-              />
-              <StatCard
-                title="Humidity"
-                value={currentWeather.humidity}
-                unit="%"
-                icon={Droplets}
-                trend="Normal range"
-                color="bg-gradient-to-br from-blue-500 to-cyan-500"
-              />
-              <StatCard
-                title="Wind Speed"
-                value={currentWeather.windSpeed.toFixed(1)}
-                unit="m/s"
-                icon={Wind}
-                trend="Light breeze"
-                color="bg-gradient-to-br from-gray-500 to-slate-600"
-              />
-              <StatCard
-                title="Pressure"
-                value={(currentWeather.pressure / 10).toFixed(1)}
-                unit="kPa"
-                icon={Eye}
-                trend="Stable"
-                color="bg-gradient-to-br from-purple-500 to-indigo-600"
-              />
+      {/* Weather Stats Grid */}
+      {activeTab === "overview" && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatCard
+              title="Current Temp"
+              value={currentWeather.temperature.toFixed(1)}
+              unit="°C"
+              icon={Thermometer}
+              trend="+2.3° from yesterday"
+              // NEW: Muted gradients
+              color="bg-gradient-to-br from-red-600 to-orange-700"
+            />
+            <StatCard
+              title="Relative Humidity"
+              value={currentWeather.humidity}
+              unit="%"
+              icon={Droplets}
+              trend="Normal range"
+              // NEW: Muted gradients
+              color="bg-gradient-to-br from-blue-600 to-cyan-700"
+            />
+            <StatCard
+              title="Wind Speed"
+              value={currentWeather.windSpeed.toFixed(1)}
+              unit="m/s"
+              icon={Wind}
+              trend="Light breeze"
+              // NEW: Muted gradients
+              color="bg-gradient-to-br from-slate-600 to-gray-700"
+            />
+            <StatCard
+              title="Pressure"
+              value={(currentWeather.pressure / 10).toFixed(1)}
+              unit="kPa"
+              icon={Eye}
+              trend="Stable"
+              // NEW: Muted gradients
+              color="bg-gradient-to-br from-purple-600 to-indigo-700"
+            />
+          </div>
+
+          {/* Current Conditions Card (Dark, High Contrast) */}
+          <div className="bg-gray-800 rounded-xl shadow-2xl shadow-black/50 border border-gray-700 p-8 mb-8">
+            <div className="flex items-start justify-between mb-6 border-b border-gray-700 pb-4">
+              <div>
+                <h2 className="text-xl font-bold text-white mb-1">
+                  Target: {currentWeather.location}
+                </h2>
+                <p className="text-gray-400 font-medium text-sm">
+                  Last Updated: {new Date(currentWeather.timestamp).toLocaleTimeString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1 bg-gray-700 border border-gray-600 rounded-full">
+                <Cloud className="h-5 w-5 text-blue-400" />
+                <span className="text-sm font-semibold text-white">
+                  {currentWeather.condition}
+                </span>
+              </div>
             </div>
 
-            {/* Current Conditions Card */}
-            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-blue-100 p-8 mb-8">
-              <div className="flex items-start justify-between mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-800 to-indigo-800 bg-clip-text text-transparent mb-2">
-                    Current Conditions
-                  </h2>
-                  <p className="text-blue-600 font-medium">
-                    {currentWeather.location}
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-900 rounded-lg border border-gray-700">
+                  <p className="text-sm text-gray-400 font-medium mb-2">
+                    System Description
+                  </p>
+                  <p className="text-white font-normal text-base">
+                    {currentWeather.description}
                   </p>
                 </div>
-                <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-full">
-                  <Cloud className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm font-semibold text-blue-700">
-                    {currentWeather.condition}
+
+                <div className="p-4 bg-gray-900 rounded-lg border border-gray-700">
+                  <p className="text-sm text-gray-400 font-medium mb-2">
+                    Temperature Detail
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-sm text-white">
+                      <span>Adjusted Air Temp</span>
+                      <span className="font-mono font-bold text-orange-400">
+                        {currentWeather.temperature.toFixed(1)}°C
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-white">
+                      <span>Surface Temp (T2M)</span>
+                      <span className="font-mono font-medium text-gray-300">
+                        {currentWeather.rawTemp.toFixed(1)}°C
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between p-3 bg-gray-900 rounded-lg border border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <Droplets className="h-5 w-5 text-blue-400" />
+                    <span className="text-sm text-gray-300">Humidity Status</span>
+                  </div>
+                  <span className="px-2 py-0.5 bg-emerald-800 text-emerald-300 text-xs font-medium rounded-full border border-emerald-600">
+                    Optimal
                   </span>
                 </div>
-              </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl border-2 border-blue-200 shadow-lg">
-                    <p className="text-sm text-blue-700 font-semibold mb-3">
-                      Weather Description
-                    </p>
-                    <p className="text-gray-800 font-medium text-lg">
-                      {currentWeather.description}
-                    </p>
+                <div className="flex items-center justify-between p-3 bg-gray-900 rounded-lg border border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <Wind className="h-5 w-5 text-gray-400" />
+                    <span className="text-sm text-gray-300">Wind Conditions</span>
                   </div>
-
-                  <div className="p-6 bg-gradient-to-br from-orange-50 to-red-100 rounded-2xl border-2 border-orange-200 shadow-lg">
-                    <p className="text-sm text-orange-700 font-semibold mb-4">
-                      Temperature Analysis
-                    </p>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700 font-medium">
-                          Adjusted Air Temp
-                        </span>
-                        <span className="font-mono font-bold text-lg text-orange-600">
-                          {currentWeather.temperature.toFixed(1)}°C
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700 font-medium">
-                          Surface Temp
-                        </span>
-                        <span className="font-mono font-medium text-gray-600">
-                          {currentWeather.rawTemp.toFixed(1)}°C
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  <span className="px-2 py-0.5 bg-slate-800 text-slate-300 text-xs font-medium rounded-full border border-slate-600">
+                    Stable
+                  </span>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Droplets className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm text-gray-700">
-                        Humidity Level
-                      </span>
-                    </div>
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                      Normal
-                    </span>
+                <div className="flex items-center justify-between p-3 bg-gray-900 rounded-lg border border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-5 w-5 text-purple-400" />
+                    <span className="text-sm text-gray-300">Pressure Status</span>
                   </div>
+                  <span className="px-2 py-0.5 bg-indigo-800 text-indigo-300 text-xs font-medium rounded-full border border-indigo-600">
+                    Normal
+                  </span>
+                </div>
 
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Wind className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">
-                        Wind Conditions
-                      </span>
-                    </div>
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                      Moderate
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Eye className="h-4 w-4 text-purple-500" />
-                      <span className="text-sm text-gray-700">Pressure</span>
-                    </div>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                      Normal
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-medium text-blue-900">
-                          Data Source
-                        </p>
-                        <p className="text-xs text-blue-700">NASA POWER API</p>
-                      </div>
+                <div className="p-4 bg-gray-900 rounded-lg border border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                    <div>
+                      <p className="text-xs font-medium text-red-400">
+                        Alerts
+                      </p>
+                      <p className="text-xs text-gray-400">No active warnings.</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Quick Actions */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <button className="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all flex items-center gap-3">
-                <Download className="h-5 w-5 text-gray-600" />
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">Export Data</p>
-                  <p className="text-xs text-gray-500">Download as CSV/JSON</p>
-                </div>
-              </button>
+          {/* Quick Actions (Minimal) */}
+          
+        </>
+      )}
 
-              <button className="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all flex items-center gap-3">
-                <BarChart3 className="h-5 w-5 text-gray-600" />
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">View Analytics</p>
-                  <p className="text-xs text-gray-500">Historical trends</p>
-                </div>
-              </button>
+      {/* Forecast, Analytics, and Map View Tabs (Dark/Clean Styling) */}
 
-              <button className="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all flex items-center gap-3">
-                <TrendingUp className="h-5 w-5 text-gray-600" />
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">ML Predictions</p>
-                  <p className="text-xs text-gray-500">14-day forecast</p>
-                </div>
-              </button>
-            </div>
-          </>
-        )}
-
+      {/* Forecast */}
         {activeTab === "forecast" && (
-          <WeatherForecast
-            coordinates={coordinates}
-            locationName={currentWeather.location}
-          />
+          // Add 'text-white' to the container and a data-theme prop for the component
+          <div className="bg-gray-800 rounded-xl shadow-2xl shadow-black/50 border border-gray-700 p-8 text-black">
+            <WeatherForecast
+              coordinates={coordinates}
+              locationName={currentWeather.location}
+              // This prop is used to apply dark mode styles inside the component
+              
+              // Passing text-white via className is a good fallback
+              className="text-white" 
+            />
+          </div>
         )}
 
-        {activeTab === "analytics" && (
-          <div className="space-y-8">
-            {/* Analytics Header */}
-            <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold text-white drop-shadow-2xl mb-2">
-                    Analytics Dashboard
-                  </h2>
-                  <p className="text-blue-100 text-lg font-medium drop-shadow-lg">
-                    Weather insights and trends for {currentWeather.location}
-                  </p>
+
+      {/* Analytics */}
+      {activeTab === "analytics" && (
+        <div className="space-y-8">
+          {/* Analytics Header */}
+          <div className="bg-gray-800 rounded-xl shadow-2xl shadow-black/50 border border-gray-700 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  System Analytics
+                </h2>
+                <p className="text-gray-400 text-base font-medium">
+                  Weather insights and trends for {currentWeather.location}
+                </p>
+              </div>
+              {analyticsLoading && (
+                <div className="flex items-center gap-3 text-cyan-400">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="font-medium">Loading analysis...</span>
                 </div>
-                {analyticsLoading && (
-                  <div className="flex items-center gap-3 text-white">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <span className="font-medium">Loading analytics...</span>
+              )}
+            </div>
+          </div>
+
+          {/* Weather Statistics Cards */}
+          {weatherStats && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Stat 1: Avg Temperature */}
+              <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700/70 p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-red-600 to-orange-700 rounded-lg">
+                    <Thermometer className="h-6 w-6 text-white" />
                   </div>
-                )}
+                  <div>
+                    <p className="text-gray-400 font-medium text-sm">
+                      Avg Temperature
+                    </p>
+                    <p className="text-2xl font-bold text-white">
+                      {weatherStats.avgTemperature}°C
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      {weatherStats.temperatureTrend === "up" ? (
+                        <ArrowUp className="h-4 w-4 text-emerald-400" />
+                      ) : weatherStats.temperatureTrend === "down" ? (
+                        <ArrowDown className="h-4 w-4 text-red-400" />
+                      ) : (
+                        <Zap className="h-4 w-4 text-blue-400" />
+                      )}
+                      <span className="text-xs text-gray-300 font-medium">
+                        {weatherStats.trendPercentage}%{" "}
+                        {weatherStats.temperatureTrend}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Stat 2: Avg Humidity */}
+              <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700/70 p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-600 to-cyan-700 rounded-lg">
+                    <Droplets className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-gray-400 font-medium text-sm">Avg Humidity</p>
+                    <p className="text-2xl font-bold text-white">
+                      {weatherStats.avgHumidity}%
+                    </p>
+                    <p className="text-xs text-gray-300 font-medium mt-1">
+                      Optimal Range
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Stat 3: Avg Wind Speed */}
+              <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700/70 p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-slate-600 to-gray-700 rounded-lg">
+                    <Wind className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-gray-400 font-medium text-sm">
+                      Avg Wind Speed
+                    </p>
+                    <p className="text-2xl font-bold text-white">
+                      {weatherStats.avgWindSpeed} m/s
+                    </p>
+                    <p className="text-xs text-gray-300 font-medium mt-1">
+                      Stable Circulation
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stat 4: Data Points */}
+              <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700/70 p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-lg">
+                    <BarChart3 className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-gray-400 font-medium text-sm">Data Points</p>
+                    <p className="text-2xl font-bold text-white">
+                      {weatherStats.totalDataPoints}
+                    </p>
+                    <p className="text-xs text-gray-300 font-medium mt-1">
+                      30-day history
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Weather Statistics Cards */}
-            {weatherStats && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-4 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl">
-                      <Thermometer className="h-8 w-8 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white/80 font-medium">
-                        Avg Temperature
-                      </p>
-                      <p className="text-3xl font-bold text-white drop-shadow-lg">
-                        {weatherStats.avgTemperature}°C
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {weatherStats.temperatureTrend === "up" ? (
-                          <ArrowUp className="h-4 w-4 text-green-300" />
-                        ) : weatherStats.temperatureTrend === "down" ? (
-                          <ArrowDown className="h-4 w-4 text-red-300" />
-                        ) : (
-                          <Zap className="h-4 w-4 text-blue-300" />
-                        )}
-                        <span className="text-sm text-white/90 font-medium">
-                          {weatherStats.trendPercentage}%{" "}
-                          {weatherStats.temperatureTrend}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-4 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl">
-                      <Droplets className="h-8 w-8 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white/80 font-medium">Avg Humidity</p>
-                      <p className="text-3xl font-bold text-white drop-shadow-lg">
-                        {weatherStats.avgHumidity}%
-                      </p>
-                      <p className="text-sm text-white/90 font-medium mt-1">
-                        Normal range
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-4 bg-gradient-to-br from-gray-500 to-slate-600 rounded-2xl">
-                      <Wind className="h-8 w-8 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white/80 font-medium">
-                        Avg Wind Speed
-                      </p>
-                      <p className="text-3xl font-bold text-white drop-shadow-lg">
-                        {weatherStats.avgWindSpeed} m/s
-                      </p>
-                      <p className="text-sm text-white/90 font-medium mt-1">
-                        Light breeze
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-4 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl">
-                      <BarChart3 className="h-8 w-8 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white/80 font-medium">Data Points</p>
-                      <p className="text-3xl font-bold text-white drop-shadow-lg">
-                        {weatherStats.totalDataPoints}
-                      </p>
-                      <p className="text-sm text-white/90 font-medium mt-1">
-                        30-day period
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Temperature Trend Chart */}
-            {historicalData.length > 0 && (
-              <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-8">
-                <h3 className="text-2xl font-bold text-white drop-shadow-lg mb-6">
+          {/* Charts Container */}
+          {historicalData.length > 0 && (
+            <div className="space-y-6">
+              {/* Temperature Trend Chart */}
+              <div className="bg-gray-800 rounded-xl shadow-2xl shadow-black/50 border border-gray-700 p-6">
+                <h3 className="text-xl font-bold text-white mb-4">
                   Temperature Trends (30 Days)
                 </h3>
-                <div className="h-80">
+                <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={historicalData}>
                       <defs>
@@ -989,26 +1015,27 @@ const App: React.FC = () => {
                           x2="0"
                           y2="1"
                         >
+                          {/* Use more subdued colors for the fill */}
                           <stop
                             offset="5%"
-                            stopColor="#f97316"
-                            stopOpacity={0.8}
+                            stopColor="#dc2626"
+                            stopOpacity={0.4}
                           />
                           <stop
                             offset="95%"
-                            stopColor="#f97316"
-                            stopOpacity={0.1}
+                            stopColor="#dc2626"
+                            stopOpacity={0.05}
                           />
                         </linearGradient>
                       </defs>
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="rgba(255,255,255,0.2)"
+                        stroke="rgba(255,255,255,0.1)"
                       />
                       <XAxis
                         dataKey="date"
-                        stroke="rgba(255,255,255,0.8)"
-                        fontSize={12}
+                        stroke="rgba(255,255,255,0.6)"
+                        fontSize={11}
                         tickFormatter={(value) =>
                           new Date(value).toLocaleDateString("en-US", {
                             month: "short",
@@ -1017,66 +1044,56 @@ const App: React.FC = () => {
                         }
                       />
                       <YAxis
-                        stroke="rgba(255,255,255,0.8)"
-                        fontSize={12}
+                        stroke="rgba(255,255,255,0.6)"
+                        fontSize={11}
                         label={{
-                          value: "Temperature (°C)",
+                          value: "Temp (°C)",
                           angle: -90,
                           position: "insideLeft",
-                          style: {
-                            textAnchor: "middle",
-                            fill: "rgba(255,255,255,0.8)",
-                          },
+                          style: { fill: "rgba(255,255,255,0.6)" },
                         }}
                       />
+                      {/* Customize Tooltip for dark mode */}
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "rgba(255,255,255,0.9)",
-                          border: "none",
-                          borderRadius: "12px",
-                          boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+                          backgroundColor: "rgba(31, 41, 55, 0.9)", // Gray-800
+                          border: "1px solid #4b5563", // Gray-600
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                          color: "white"
                         }}
-                        labelFormatter={(value) =>
-                          new Date(value).toLocaleDateString("en-US", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })
-                        }
                       />
                       <Area
                         type="monotone"
                         dataKey="temperature"
-                        stroke="#f97316"
+                        stroke="#f97316" // Orange
                         fillOpacity={1}
                         fill="url(#temperatureGradient)"
-                        strokeWidth={3}
+                        strokeWidth={2}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
-            )}
 
-            {/* Weather Metrics Charts */}
-            {historicalData.length > 0 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Weather Metrics Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Humidity & Wind Speed Chart */}
-                <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-8">
-                  <h3 className="text-2xl font-bold text-white drop-shadow-lg mb-6">
-                    Humidity & Wind Speed
+                <div className="bg-gray-800 rounded-xl shadow-2xl shadow-black/50 border border-gray-700 p-6">
+                  <h3 className="text-xl font-bold text-white mb-4">
+                    Humidity & Wind Metrics
                   </h3>
-                  <div className="h-72">
+                  <div className="h-60">
                     <ResponsiveContainer width="100%" height="100%">
                       <RechartsLineChart data={historicalData}>
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="rgba(255,255,255,0.2)"
+                          stroke="rgba(255,255,255,0.1)"
                         />
                         <XAxis
                           dataKey="date"
-                          stroke="rgba(255,255,255,0.8)"
-                          fontSize={12}
+                          stroke="rgba(255,255,255,0.6)"
+                          fontSize={11}
                           tickFormatter={(value) =>
                             new Date(value).toLocaleDateString("en-US", {
                               month: "short",
@@ -1084,30 +1101,31 @@ const App: React.FC = () => {
                             })
                           }
                         />
-                        <YAxis stroke="rgba(255,255,255,0.8)" fontSize={12} />
+                        <YAxis stroke="rgba(255,255,255,0.6)" fontSize={11} />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "rgba(255,255,255,0.9)",
-                            border: "none",
-                            borderRadius: "12px",
-                            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+                            backgroundColor: "rgba(31, 41, 55, 0.9)",
+                            border: "1px solid #4b5563",
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                            color: "white"
                           }}
                         />
-                        <Legend />
+                        <Legend wrapperStyle={{ color: 'white' }} />
                         <Line
                           type="monotone"
                           dataKey="humidity"
-                          stroke="#06b6d4"
-                          strokeWidth={3}
-                          dot={{ fill: "#06b6d4", strokeWidth: 2, r: 4 }}
+                          stroke="#38bdf8" // Sky Blue
+                          strokeWidth={2}
+                          dot={{ fill: "#38bdf8", strokeWidth: 1, r: 3 }}
                           name="Humidity (%)"
                         />
                         <Line
                           type="monotone"
                           dataKey="windSpeed"
-                          stroke="#64748b"
-                          strokeWidth={3}
-                          dot={{ fill: "#64748b", strokeWidth: 2, r: 4 }}
+                          stroke="#94a3b8" // Slate
+                          strokeWidth={2}
+                          dot={{ fill: "#94a3b8", strokeWidth: 1, r: 3 }}
                           name="Wind Speed (m/s)"
                         />
                       </RechartsLineChart>
@@ -1116,59 +1134,58 @@ const App: React.FC = () => {
                 </div>
 
                 {/* Weekly Trends Bar Chart */}
-                <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-8">
-                  <h3 className="text-2xl font-bold text-white drop-shadow-lg mb-6">
+                <div className="bg-gray-800 rounded-xl shadow-2xl shadow-black/50 border border-gray-700 p-6">
+                  <h3 className="text-xl font-bold text-white mb-4">
                     Weekly Temperature Averages
                   </h3>
-                  <div className="h-72">
+                  <div className="h-60">
                     <ResponsiveContainer width="100%" height="100%">
                       <RechartsBarChart data={weatherTrends}>
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="rgba(255,255,255,0.2)"
+                          stroke="rgba(255,255,255,0.1)"
                         />
                         <XAxis
                           dataKey="period"
-                          stroke="rgba(255,255,255,0.8)"
-                          fontSize={12}
+                          stroke="rgba(255,255,255,0.6)"
+                          fontSize={11}
                         />
                         <YAxis
-                          stroke="rgba(255,255,255,0.8)"
-                          fontSize={12}
+                          stroke="rgba(255,255,255,0.6)"
+                          fontSize={11}
                           label={{
-                            value: "Temperature (°C)",
+                            value: "Temp (°C)",
                             angle: -90,
                             position: "insideLeft",
-                            style: {
-                              textAnchor: "middle",
-                              fill: "rgba(255,255,255,0.8)",
-                            },
+                            style: { fill: "rgba(255,255,255,0.6)" },
                           }}
                         />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "rgba(255,255,255,0.9)",
-                            border: "none",
-                            borderRadius: "12px",
-                            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+                            backgroundColor: "rgba(31, 41, 55, 0.9)",
+                            border: "1px solid #4b5563",
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                            color: "white"
                           }}
                         />
-                        <Legend />
+                        <Legend wrapperStyle={{ color: 'white' }} />
+                        {/* Use subdued, related colors for the bars */}
                         <Bar
                           dataKey="avgTemp"
-                          fill="#f97316"
+                          fill="#facc15" // Amber
                           name="Avg Temp"
                           radius={[4, 4, 0, 0]}
                         />
                         <Bar
                           dataKey="maxTemp"
-                          fill="#dc2626"
+                          fill="#f87171" // Red-300
                           name="Max Temp"
                           radius={[4, 4, 0, 0]}
                         />
                         <Bar
                           dataKey="minTemp"
-                          fill="#2563eb"
+                          fill="#60a5fa" // Blue-400
                           name="Min Temp"
                           radius={[4, 4, 0, 0]}
                         />
@@ -1177,12 +1194,10 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Weather Conditions Distribution */}
-            {historicalData.length > 0 && (
-              <div className="bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/40 p-8">
-                <h3 className="text-2xl font-bold text-white drop-shadow-lg mb-6">
+              {/* Weather Conditions Distribution */}
+              <div className="bg-gray-800 rounded-xl shadow-2xl shadow-black/50 border border-gray-700 p-6">
+                <h3 className="text-xl font-bold text-white mb-4">
                   Weather Conditions Distribution
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1195,70 +1210,73 @@ const App: React.FC = () => {
                             {
                               name: "Partly Cloudy",
                               value: 30,
-                              fill: "#06b6d4",
+                              fill: "#38bdf8",
                             },
                             { name: "Cloudy", value: 25, fill: "#64748b" },
-                            { name: "Rainy", value: 10, fill: "#3b82f6" },
+                            { name: "Rainy", value: 10, fill: "#2563eb" },
                           ]}
                           cx="50%"
                           cy="50%"
-                          outerRadius={80}
+                          outerRadius={90}
                           dataKey="value"
-                          label={({ name, value }) => `${name}: ${value}%`}
+                          labelLine={false} // Cleanliness
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                         >
                           {[
                             { name: "Clear", value: 35, fill: "#fbbf24" },
                             {
                               name: "Partly Cloudy",
                               value: 30,
-                              fill: "#06b6d4",
+                              fill: "#38bdf8",
                             },
                             { name: "Cloudy", value: 25, fill: "#64748b" },
-                            { name: "Rainy", value: 10, fill: "#3b82f6" },
+                            { name: "Rainy", value: 10, fill: "#2563eb" },
                           ].map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.fill} />
                           ))}
                         </Pie>
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "rgba(255,255,255,0.9)",
-                            border: "none",
-                            borderRadius: "12px",
-                            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+                            backgroundColor: "rgba(31, 41, 55, 0.9)",
+                            border: "1px solid #4b5563",
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                            color: "white"
                           }}
                         />
+                        <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ color: 'white' }} />
                       </RechartsPieChart>
                     </ResponsiveContainer>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4 p-4 bg-white/20 rounded-2xl">
-                      <Sun className="h-8 w-8 text-yellow-300" />
+                    <div className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg border border-gray-700">
+                      <Sun className="h-6 w-6 text-yellow-400" />
                       <div>
-                        <p className="text-white font-bold text-lg">
-                          Most Common
+                        <p className="text-white font-semibold text-base">
+                          Most Frequent Condition
                         </p>
-                        <p className="text-blue-100">
+                        <p className="text-gray-400">
                           {weatherStats?.mostCommonCondition}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 p-4 bg-white/20 rounded-2xl">
-                      <CloudRain className="h-8 w-8 text-blue-300" />
+                    <div className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg border border-gray-700">
+                      <CloudRain className="h-6 w-6 text-blue-400" />
                       <div>
-                        <p className="text-white font-bold text-lg">
-                          Precipitation Days
+                        <p className="text-white font-semibold text-base">
+                          Rainy Days (30-Day)
                         </p>
-                        <p className="text-blue-100">3 out of 30 days</p>
+                        <p className="text-gray-400">3 out of 30 days</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 p-4 bg-white/20 rounded-2xl">
-                      <TrendingUp className="h-8 w-8 text-green-300" />
+                    <div className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg border border-gray-700">
+                      <TrendingUp className="h-6 w-6 text-emerald-400" />
                       <div>
-                        <p className="text-white font-bold text-lg">
+                        <p className="text-white font-semibold text-base">
                           Temperature Range
                         </p>
-                        <p className="text-blue-100">
+                        <p className="text-gray-400">
                           {weatherStats?.minTemperature}°C -{" "}
                           {weatherStats?.maxTemperature}°C
                         </p>
@@ -1267,65 +1285,68 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+      )}
 
-        {activeTab === "map" && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-blue-100 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-800 to-indigo-800 bg-clip-text text-transparent">
-                  Interactive Weather Map
-                </h2>
-                <p className="text-blue-600 font-medium">
-                  Click anywhere to check weather conditions
-                </p>
-              </div>
-              {loading && (
-                <div className="flex items-center gap-3 text-blue-600">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <span className="font-medium">Getting weather data...</span>
-                </div>
-              )}
-            </div>
-            <div className="h-96 rounded-xl overflow-hidden shadow-lg">
-              <WeatherMap
-                center={[coordinates.lat, coordinates.lon]}
-                onLocationSelect={handleMapLocationSelect}
-                currentLocation={currentLocation}
-                weatherData={{
-                  temperature: currentWeather.temperature,
-                  humidity: currentWeather.humidity,
-                  windSpeed: currentWeather.windSpeed,
-                  condition: currentWeather.condition,
-                }}
-              />
-            </div>
-            <div className="mt-4 bg-blue-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-800">
-                  Current Selection
-                </span>
-              </div>
-              <p className="text-sm text-blue-700">
-                <strong>
-                  {currentLocation.name || "No location selected"}
-                </strong>
-                {currentLocation.lat && (
-                  <span className="ml-2 text-blue-600">
-                    ({currentLocation.lat.toFixed(4)},{" "}
-                    {currentLocation.lon.toFixed(4)})
-                  </span>
-                )}
+      {/* Map View */}
+      {activeTab === "map" && (
+        <div className="bg-gray-800 rounded-xl shadow-2xl shadow-black/50 border border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4 border-b border-gray-700 pb-4">
+            <div>
+              <h2 className="text-xl font-bold text-white">
+                Interactive Weather Map
+              </h2>
+              <p className="text-gray-400 font-medium text-sm">
+                Select coordinates to pull real-time data.
               </p>
             </div>
+            {loading && (
+              <div className="flex items-center gap-3 text-cyan-400">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="font-medium">Acquiring signal...</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+          <div className="h-96 rounded-lg overflow-hidden border border-gray-700 shadow-xl">
+            <WeatherMap
+              center={[coordinates.lat, coordinates.lon]}
+              onLocationSelect={handleMapLocationSelect}
+              currentLocation={currentLocation}
+              weatherData={{
+                temperature: currentWeather.temperature,
+                humidity: currentWeather.humidity,
+                windSpeed: currentWeather.windSpeed,
+                condition: currentWeather.condition,
+              }}
+            />
+          </div>
+          <div className="mt-4 bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center gap-2 mb-1">
+              <MapPin className="h-4 w-4 text-purple-400" />
+              <span className="text-sm font-medium text-purple-300">
+                Current Map Target
+              </span>
+            </div>
+            <p className="text-sm text-white">
+              <strong>
+                {currentLocation.name || "No target selected"}
+              </strong>
+              {currentLocation.lat && (
+                <span className="ml-2 text-gray-400 font-mono">
+                  ({currentLocation.lat.toFixed(4)},{" "}
+                  {currentLocation.lon.toFixed(4)})
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
 };
 
 export default App;
+
