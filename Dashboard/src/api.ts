@@ -48,6 +48,16 @@ export async function getForecast(lat: number, lon: number, days = 14) {
   }
 }
 
+export async function getHourlyForecast(lat: number, lon: number, hours = 48) {
+  try {
+    const { data } = await api.get("/weather/forecast/hourly", { params: { lat, lon, hours } });
+    return data;
+  } catch (error) {
+    console.error('Failed to get hourly forecast:', error);
+    throw error;
+  }
+}
+
 export async function getWeatherAtTime(lat: number, lon: number, datetime: string) {
   try {
     const { data } = await api.get("/weather/at-time", { 

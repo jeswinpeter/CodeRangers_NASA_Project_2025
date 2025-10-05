@@ -28,6 +28,80 @@ import {
 import * as api from "./api";
 import { LocationSearch } from "./components/LocationSearch";
 import { WeatherMap } from "./components/WeatherMap";
+import { WeatherForecast } from "./components/WeatherForecast";
+
+// Function to generate natural weather descriptions
+const generateWeatherDescription = (
+  temperature: number,
+  humidity: number,
+  windSpeed: number,
+  pressure: number
+): string => {
+  let description = "";
+
+  // Base condition based on temperature
+  if (temperature > 30) {
+    description = "hot";
+  } else if (temperature > 25) {
+    description = "warm";
+  } else if (temperature > 15) {
+    description = "mild";
+  } else if (temperature > 5) {
+    description = "cool";
+  } else {
+    description = "cold";
+  }
+
+  // Sky conditions based on pressure and humidity
+  let skyCondition = "";
+  if (pressure > 1020) {
+    if (humidity < 40) {
+      skyCondition = "mostly sunny";
+    } else if (humidity < 60) {
+      skyCondition = "partly sunny";
+    } else {
+      skyCondition = "partly cloudy";
+    }
+  } else if (pressure > 1000) {
+    if (humidity < 50) {
+      skyCondition = "partly cloudy";
+    } else if (humidity < 70) {
+      skyCondition = "mostly cloudy";
+    } else {
+      skyCondition = "overcast";
+    }
+  } else {
+    if (humidity > 80) {
+      skyCondition = "rainy";
+    } else if (humidity > 70) {
+      skyCondition = "cloudy with chance of rain";
+    } else {
+      skyCondition = "mostly cloudy";
+    }
+  }
+
+  // Wind conditions
+  let windCondition = "";
+  if (windSpeed > 20) {
+    windCondition = " with strong winds";
+  } else if (windSpeed > 10) {
+    windCondition = " with moderate winds";
+  } else if (windSpeed > 5) {
+    windCondition = " with light winds";
+  }
+
+  // Additional weather details based on humidity
+  let additionalDetails = "";
+  if (humidity > 85 && pressure < 1010) {
+    additionalDetails = ", chance of rain";
+  } else if (humidity > 75 && temperature > 25) {
+    additionalDetails = ", humid conditions";
+  } else if (humidity < 30) {
+    additionalDetails = ", dry conditions";
+  }
+
+  return `${skyCondition} and ${description}${windCondition}${additionalDetails}`;
+};
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -229,7 +303,14 @@ const App: React.FC = () => {
         windSpeed: current.ws10m || current.windSpeed || 5,
         pressure: current.ps || current.pressure || 1013,
         condition: current.condition || "Clear",
-        description: current.description || `Weather data from NASA POWER API`,
+        description:
+          current.description ||
+          generateWeatherDescription(
+            current.ts || current.temperature || 20,
+            current.rh2m || current.humidity || 60,
+            current.ws10m || current.windSpeed || 5,
+            current.ps || current.pressure || 1013
+          ),
         rawTemp: current.ts || current.T2M || current.rawTemp || 22,
         timestamp: new Date().toISOString(),
       };
@@ -776,12 +857,10 @@ const App: React.FC = () => {
         )}
 
         {activeTab === "forecast" && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              7-Day Forecast
-            </h2>
-            <p className="text-gray-500">Forecast view coming soon...</p>
-          </div>
+          <WeatherForecast
+            coordinates={coordinates}
+            locationName={currentWeather.location}
+          />
         )}
 
         {activeTab === "analytics" && (
