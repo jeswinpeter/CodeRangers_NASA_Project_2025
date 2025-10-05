@@ -1,0 +1,8 @@
+# MINIMAL WORKING REQUIREMENTS - BACKUP FILE
+# Use this file when your teammate breaks dependencies again
+# Run: pip install -r requirements-minimal.txt
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+requests>=2.32.0
+python-dotenv>=1.0.1

@@ -46,50 +46,26 @@ interface ForecastDay {
   icon: string;
   day_name: string;
   description: string;
-  confidence: {
-    probabilities: {
-      overall: number;
-      temperature: number;
-      precipitation: number;
-      wind: number;
-      condition: number;
-    };
-    confidence_level: string;
-    factors: {
-      time_decay: number;
-      location_stability: number;
-      weather_complexity: number;
-    };
-  };
+  confidence_level: number;
+  precipitation_chance: number;
+  uv_index: number;
+  wind_direction: string;
 }
 
 interface HourlyForecast {
   datetime: string;
-  hour: string;
+  hour: number;
   date: string;
   temperature: number;
   feels_like: number;
   humidity: number;
   wind_speed: number;
   pressure: number;
-  condition: string;
-  icon: string;
-  is_daytime: boolean;
-  confidence: {
-    probabilities: {
-      overall: number;
-      temperature: number;
-      precipitation: number;
-      wind: number;
-      condition: number;
-    };
-    confidence_level: string;
-    factors: {
-      time_decay: number;
-      location_stability: number;
-      weather_complexity: number;
-    };
-  };
+  description: string;
+  confidence_level: number;
+  precipitation_chance: number;
+  uv_index: number;
+  wind_direction: string;
 }
 
 interface WeatherForecastProps {
@@ -152,18 +128,27 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
     fetchForecastData();
   }, [coordinates]);
 
-  const getConfidenceColor = (level: string) => {
-    switch (level) {
-      case "High":
-        return "text-green-600 bg-green-100";
-      case "Medium":
-        return "text-yellow-600 bg-yellow-100";
-      case "Low":
-        return "text-orange-600 bg-orange-100";
-      case "Very Low":
-        return "text-red-600 bg-red-100";
-      default:
-        return "text-gray-600 bg-gray-100";
+  const getConfidenceColor = (level: number) => {
+    if (level >= 0.8) {
+      return "text-green-600 bg-green-100";
+    } else if (level >= 0.6) {
+      return "text-yellow-600 bg-yellow-100";
+    } else if (level >= 0.4) {
+      return "text-orange-600 bg-orange-100";
+    } else {
+      return "text-red-600 bg-red-100";
+    }
+  };
+
+  const getConfidenceLevelText = (level: number) => {
+    if (level >= 0.8) {
+      return "High";
+    } else if (level >= 0.6) {
+      return "Medium";
+    } else if (level >= 0.4) {
+      return "Low";
+    } else {
+      return "Very Low";
     }
   };
 
@@ -187,7 +172,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
       humidity: day.humidity,
       wind_speed: day.wind_speed,
       pressure: day.pressure,
-      confidence: day.confidence.probabilities.overall,
+      confidence: Math.round(day.confidence_level * 100),
     }));
   };
 
@@ -197,7 +182,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
       temperature: hour.temperature,
       humidity: hour.humidity,
       wind_speed: hour.wind_speed,
-      confidence: hour.confidence.probabilities.overall,
+      confidence: Math.round(hour.confidence_level * 100),
     }));
   };
 
@@ -333,24 +318,24 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
                         <span className="text-gray-600">Confidence</span>
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${getConfidenceColor(
-                            day.confidence.confidence_level
+                            day.confidence_level
                           )}`}
                         >
-                          {day.confidence.confidence_level}
+                          {getConfidenceLevelText(day.confidence_level)}
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${getConfidenceBarColor(
-                            day.confidence.probabilities.overall
+                            Math.round(day.confidence_level * 100)
                           )}`}
                           style={{
-                            width: `${day.confidence.probabilities.overall}%`,
+                            width: `${Math.round(day.confidence_level * 100)}%`,
                           }}
                         ></div>
                       </div>
                       <div className="text-xs text-gray-500 text-center">
-                        {day.confidence.probabilities.overall}% accurate
+                        {Math.round(day.confidence_level * 100)}% accurate
                       </div>
                     </div>
                   </div>
@@ -423,24 +408,19 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
                     </h5>
                     <div
                       className={`inline-flex px-3 py-2 rounded-full text-sm font-medium ${getConfidenceColor(
-                        forecastData[selectedDay].confidence.confidence_level
+                        forecastData[selectedDay].confidence_level
                       )}`}
                     >
-                      {forecastData[selectedDay].confidence.confidence_level} -{" "}
-                      {
-                        forecastData[selectedDay].confidence.probabilities
-                          .overall
-                      }
-                      %
+                      {getConfidenceLevelText(forecastData[selectedDay].confidence_level)} -{" "}
+                      {Math.round(forecastData[selectedDay].confidence_level * 100)}%
                     </div>
                     <div className="mt-3 w-full bg-gray-200 rounded-full h-3">
                       <div
                         className={`h-3 rounded-full ${getConfidenceBarColor(
-                          forecastData[selectedDay].confidence.probabilities
-                            .overall
+                          Math.round(forecastData[selectedDay].confidence_level * 100)
                         )}`}
                         style={{
-                          width: `${forecastData[selectedDay].confidence.probabilities.overall}%`,
+                          width: `${Math.round(forecastData[selectedDay].confidence_level * 100)}%`,
                         }}
                       ></div>
                     </div>
@@ -453,88 +433,34 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">
-                          Temperature:
+                          Overall Confidence:
                         </span>
                         <span className="font-medium">
-                          {
-                            forecastData[selectedDay].confidence.probabilities
-                              .temperature
-                          }
-                          %
+                          {Math.round(forecastData[selectedDay].confidence_level * 100)}%
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">
-                          Precipitation:
+                          Precipitation Chance:
                         </span>
                         <span className="font-medium">
-                          {
-                            forecastData[selectedDay].confidence.probabilities
-                              .precipitation
-                          }
-                          %
+                          {forecastData[selectedDay].precipitation_chance}%
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Wind:</span>
+                        <span className="text-sm text-gray-600">UV Index:</span>
                         <span className="font-medium">
-                          {
-                            forecastData[selectedDay].confidence.probabilities
-                              .wind
-                          }
-                          %
+                          {forecastData[selectedDay].uv_index}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">
-                          Condition:
+                          Wind Direction:
                         </span>
                         <span className="font-medium">
-                          {
-                            forecastData[selectedDay].confidence.probabilities
-                              .condition
-                          }
-                          %
+                          {forecastData[selectedDay].wind_direction}
                         </span>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <h5 className="font-medium text-gray-700 mb-3">
-                    Confidence Factors
-                  </h5>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div className="text-center">
-                      <div className="font-medium">
-                        {
-                          forecastData[selectedDay].confidence.factors
-                            .time_decay
-                        }
-                        %
-                      </div>
-                      <div className="text-gray-600">Time Factor</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium">
-                        {
-                          forecastData[selectedDay].confidence.factors
-                            .location_stability
-                        }
-                        %
-                      </div>
-                      <div className="text-gray-600">Location</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium">
-                        {
-                          forecastData[selectedDay].confidence.factors
-                            .weather_complexity
-                        }
-                        %
-                      </div>
-                      <div className="text-gray-600">Weather Pattern</div>
                     </div>
                   </div>
                 </div>
@@ -554,16 +480,17 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
             <div className="overflow-x-auto">
               <div className="flex space-x-4 p-4 min-w-max">
                 {hourlyData.map((hour, index) => {
-                  const WeatherIcon = getWeatherIcon(hour.icon);
+                  // Use Sun icon for daytime hours (6am-6pm), Moon for nighttime
+                  const WeatherIcon = hour.hour >= 6 && hour.hour <= 18 ? Sun : Moon;
                   return (
                     <div
                       key={index}
                       className="flex-shrink-0 w-28 text-center bg-white rounded-lg p-3 shadow-sm"
                     >
-                      <p className="text-xs text-gray-600 mb-1">{hour.hour}</p>
+                      <p className="text-xs text-gray-600 mb-1">{hour.hour}:00</p>
                       <WeatherIcon
                         className={`w-6 h-6 mx-auto mb-2 ${
-                          hour.is_daytime ? "text-yellow-500" : "text-blue-400"
+                          hour.hour >= 6 && hour.hour <= 18 ? "text-yellow-500" : "text-blue-400"
                         }`}
                       />
                       <p className="font-semibold text-sm">
@@ -581,15 +508,15 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
                         <div className="w-full bg-gray-200 rounded-full h-1">
                           <div
                             className={`h-1 rounded-full ${getConfidenceBarColor(
-                              hour.confidence.probabilities.overall
+                              Math.round(hour.confidence_level * 100)
                             )}`}
                             style={{
-                              width: `${hour.confidence.probabilities.overall}%`,
+                              width: `${Math.round(hour.confidence_level * 100)}%`,
                             }}
                           ></div>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
-                          {Math.round(hour.confidence.probabilities.overall)}%
+                          {Math.round(hour.confidence_level * 100)}%
                         </p>
                       </div>
                     </div>

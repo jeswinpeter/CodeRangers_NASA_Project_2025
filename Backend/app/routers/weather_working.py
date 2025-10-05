@@ -61,36 +61,19 @@ def fetch_nasa_power_direct(lat: float, lon: float) -> dict:
         data = response.json()
         parameters = data["properties"]["parameter"]
         
-        # Get the latest data and check for valid values
+        # Get the latest data
         dates = list(parameters["T2M"].keys())
+        latest_date = max(dates)
         
-        # Find a date with valid data (not -999.00)
-        valid_data = None
-        for date_key in reversed(sorted(dates)):  # Start with most recent
-            temp = parameters["T2M"][date_key]
-            humidity = parameters["RH2M"][date_key]
-            wind = parameters["WS10M"][date_key] 
-            pressure = parameters["PS"][date_key]
-            
-            # Check if data is valid (NASA uses -999.00 for missing data)
-            if (temp > -900 and humidity > -900 and wind > -900 and pressure > -900):
-                valid_data = {
-                    "temperature": temp,
-                    "humidity": humidity,
-                    "wind_speed": wind,
-                    "pressure": pressure,
-                    "visibility": round(random.uniform(5, 15), 1),
-                    "cloud_cover": round(random.uniform(0, 100)),
-                    "description": get_weather_description(temp, humidity)
-                }
-                break
-        
-        if valid_data:
-            return valid_data
-        else:
-            # All NASA data is invalid, return None to trigger fallback
-            print(f"All NASA data is invalid (-999 values) for coordinates {lat}, {lon}")
-            return None
+        return {
+            "temperature": parameters["T2M"][latest_date],
+            "humidity": parameters["RH2M"][latest_date],
+            "wind_speed": parameters["WS10M"][latest_date],
+            "pressure": parameters["PS"][latest_date],
+            "visibility": round(random.uniform(5, 15), 1),
+            "cloud_cover": round(random.uniform(0, 100)),
+            "description": get_weather_description(parameters["T2M"][latest_date], parameters["RH2M"][latest_date])
+        }
     except Exception as e:
         print(f"NASA API fetch failed: {e}")
         return None
@@ -184,73 +167,15 @@ def forecast(lat: float, lon: float, days: int = Query(14, ge=1, le=14)):
             "humidity": weather["humidity"],
             "wind_speed": weather["wind_speed"],
             "pressure": weather["pressure"],
-            "description": weather["description"],
-            "confidence_level": round(random.uniform(0.8, 0.95), 2),
-            "precipitation_chance": round(random.uniform(0, 50), 1),
-            "temperature_max": round(weather["temperature"] + random.uniform(2, 8), 1),
-            "temperature_min": round(weather["temperature"] - random.uniform(3, 7), 1)
+            "description": weather["description"]
         })
     
-    response_data = {
+    return {
         "lat": lat,
         "lon": lon,
         "forecast": forecast_data,
         "generated_at": current_time.isoformat()
     }
-    
-    print(f"Daily forecast response for {lat}, {lon}:")
-    print(f"Number of forecast items: {len(forecast_data)}")
-    if forecast_data:
-        print(f"First item keys: {list(forecast_data[0].keys())}")
-        print(f"First item sample: {forecast_data[0]}")
-    
-    return response_data
-
-@router.get("/forecast/hourly")
-def forecast_hourly(lat: float, lon: float, hours: int = Query(48, ge=1, le=168)):
-    """Generate hourly weather forecast for up to 7 days (168 hours)"""
-    current_time = datetime.utcnow()
-    
-    hourly_forecast = []
-    for i in range(hours):
-        future_time = current_time + timedelta(hours=i)
-        weather = generate_realistic_weather(lat, lon, future_time)
-        
-        # Add some hourly variation
-        hourly_temp_variation = 3 * math.sin(future_time.hour * 2 * math.pi / 24)
-        adjusted_temp = weather["temperature"] + hourly_temp_variation
-        
-        hourly_forecast.append({
-            "datetime": future_time.isoformat(),
-            "hour": future_time.hour,
-            "date": future_time.strftime("%Y-%m-%d"),
-            "temperature": round(adjusted_temp, 1),
-            "humidity": weather["humidity"],
-            "wind_speed": weather["wind_speed"],
-            "pressure": weather["pressure"],
-            "description": weather["description"],
-            "feels_like": round(adjusted_temp + random.uniform(-2, 2), 1),
-            "confidence_level": round(random.uniform(0.75, 0.95), 2),
-            "precipitation_chance": round(random.uniform(0, 40), 1),
-            "uv_index": random.randint(1, 10),
-            "wind_direction": random.choice(["N", "NE", "E", "SE", "S", "SW", "W", "NW"])
-        })
-    
-    response_data = {
-        "lat": lat,
-        "lon": lon,
-        "hourly_forecast": hourly_forecast,
-        "hours": hours,
-        "generated_at": current_time.isoformat()
-    }
-    
-    print(f"Hourly forecast response for {lat}, {lon}:")
-    print(f"Number of forecast items: {len(hourly_forecast)}")
-    if hourly_forecast:
-        print(f"First item keys: {list(hourly_forecast[0].keys())}")
-        print(f"First item sample: {hourly_forecast[0]}")
-    
-    return response_data
 
 @router.get("/historical")
 def historical(
